@@ -25,17 +25,19 @@
 <script>
 let RAW = [];
 let BASE_SUMMARY = {total:0,uniquePartners:0,regions:0,provinces:0,campusFilled:0,signedFilled:0,endFilled:0,mouTypeFilled:0,programModelFilled:0,directionFilled:0,counterpartyFilled:0,activeKnown:0,expired:0,minYear:null,maxYear:null,statusCounts:{},mouTypeCounts:{},programModelCounts:{},counterpartyCounts:{},regionCounts:{},provinceCounts:{}};
+const COLORS=['#0f766e','#2563eb','#b45309','#7c3aed','#dc2626','#ca8a04','#16a34a','#0891b2','#64748b','#f97316','#14b8a6','#a855f7'];
 const EXCEL_PATHS = [
   'China_MOU_Master.xlsx'
 ];
 const EXCEL_SHEET_NAME = 'China_MOU_Master';
 function normalizeCellValue(v){return String(v??'').trim()}
-function pick(row, names){for(const name of names){if(Object.prototype.hasOwnProperty.call(row,name)){return normalizeCellValue(row[name])}}return ''}
+function pick(row, names){for(const name of names){const target=String(name).trim();for(const key of Object.keys(row)){if(String(key).trim()===target){return normalizeCellValue(row[key])}}}return ''}
 function parseSignedYear(v){const m=String(v??'').match(/(19|20)\d{2}/);return m?Number(m[0]):null}
+function normalizeStatusValue(v){const s=normalizeCellValue(v);if(!s)return 'Expired';const lower=s.toLowerCase();if(lower.includes('ongoing')||s.includes('有效')||s.includes('진행'))return 'Ongoing';if(lower.includes('expired')||s.includes('过期')||s.includes('過期')||s.includes('만료'))return 'Expired';return s}
 function parseCounterpartyGroup(v){const s=normalizeCellValue(v);if(!s)return '';return s.split('/')[0].split('；')[0].split(';')[0].trim()}
 function excelRowToRecord(row, index){
   const signedRaw=pick(row,['Signed Year','签署年','签署日','Signed Date']);
-  const status=pick(row,['Status','状态']) || 'Expired';
+  const status=normalizeStatusValue(pick(row,['Status','状态','狀態']));
   const counterpartyType=pick(row,['Counterparty Type','合作对象类型']);
   return {
     no: pick(row,['No.','No','NO','序号']) || String(index+1),
