@@ -216,9 +216,13 @@ function drawTimeline(rows){const years=uniq(rows.map(r=>r.signedYear)).sort((a,
 /* ── PDF helpers ─────────────────────────────────────────── */
 function resolvePdfUrl(raw){
   if(!raw||!String(raw).trim())return'';
-  const u=String(raw).trim();
+  let u=String(raw).trim();
+  // Google Drive: 任何格式的分享/查看鏈接 → 轉為 /preview（可 iframe 嵌入）
+  const gdMatch=u.match(/drive\.google\.com\/file\/d\/([A-Za-z0-9_\-]+)/);
+  if(gdMatch)return`https://drive.google.com/file/d/${gdMatch[1]}/preview`;
+  // 其他完整 URL 直接使用
   if(/^https?:\/\//i.test(u))return u;
-  // Relative path → build from current page base
+  // 相對路徑 → 補全當前頁面 base
   const base=window.location.href.split('?')[0].replace(/\/[^/]*$/,'/');
   return base+u;
 }
