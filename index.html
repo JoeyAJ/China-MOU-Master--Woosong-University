@@ -262,10 +262,10 @@ function drawDetails(rows){
   if(!coverEl){coverEl=document.createElement('div');coverEl.id='pdfCoverageBar';metaEl.parentNode.insertBefore(coverEl,metaEl.nextSibling)}
   coverEl.innerHTML=coverageHtml;
   const shown=rows.map(r=>{
-    const pdfCell=r.documentUrl
-      ?`<button class="pdf-btn" onclick="openPdf(${JSON.stringify(r.documentUrl)},${JSON.stringify(displayName(r))})">📄 ${LANG==='ko'?'보기':LANG==='en'?'View':'查看'}</button>`
+    const pdfBtn=r.documentUrl
+      ?`<button class="pdf-btn" data-url="${safe(r.documentUrl)}" data-title="${safe(displayName(r))}" onclick="openPdf(this.dataset.url,this.dataset.title)">📄 ${LANG==='ko'?'보기':LANG==='en'?'View':'查看'}</button>`
       :`<span class="pdf-none">—</span>`;
-    return`<tr><td>${safe(r.no)}</td><td><strong>${safe(displayName(r))}</strong><br><span style="color:#7b7468">${safe(subName(r))}</span></td><td><span class="pill region">${safe(val(r.region))}</span><br>${safe(val(r.province))}</td><td>${safe(r.campus)}</td><td><span class="pill type">${safe(val(r.mouType))}</span></td><td>${safe(r.programModel)}</td><td>${safe(val(r.counterpartyType))}</td><td>${safe(r.signedRaw)}<br><span style="color:#7b7468">${safe(r.endRaw)}</span></td><td><span class="${statusClass(r.status)}">${safe(val(r.status))}</span></td><td>${safe(r.notes)}</td><td style="white-space:nowrap">${pdfCell}</td></tr>`;
+    return`<tr><td>${safe(r.no)}</td><td><strong>${safe(displayName(r))}</strong><br><span style="color:#7b7468">${safe(subName(r))}</span></td><td><span class="pill region">${safe(val(r.region))}</span><br>${safe(val(r.province))}</td><td>${safe(r.campus)}</td><td><span class="pill type">${safe(val(r.mouType))}</span></td><td>${safe(r.programModel)}</td><td>${safe(val(r.counterpartyType))}</td><td>${safe(r.signedRaw)}<br><span style="color:#7b7468">${safe(r.endRaw)}</span></td><td><span class="${statusClass(r.status)}">${safe(val(r.status))}</span></td><td>${safe(r.notes)}</td><td style="white-space:nowrap">${pdfBtn}</td></tr>`;
   });
   makeTable('detailTable',t('thDetail'),shown);
 }
