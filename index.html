@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js"></script>
 <style>
 :root{--bg:#f7f5ef;--surface:#fff;--surface2:#f1eee7;--ink:#171512;--muted:#7b7468;--line:#dfd8ce;--accent:#b45309;--accent2:#0f766e;--blue:#2563eb;--red:#dc2626;--yellow:#ca8a04;--green:#16a34a;--cyan:#0891b2;--purple:#7c3aed;--shadow:0 14px 40px rgba(35,31,25,.08)}
 *{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--ink);font-family:'Inter','Noto Sans SC','Noto Sans KR',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;min-height:100vh}.header{background:linear-gradient(135deg,#fff 0%,#f4efe4 72%,#efe2d0 100%);border-bottom:1px solid var(--line);padding:34px 42px 26px;display:flex;justify-content:space-between;align-items:flex-end;gap:22px;flex-wrap:wrap}.eyebrow{color:var(--accent2);text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:800;display:flex;gap:8px;align-items:center;margin-bottom:8px}.dot{width:8px;height:8px;border-radius:999px;background:var(--accent2);box-shadow:0 0 0 6px rgba(15,118,110,.12)}h1{font-size:34px;letter-spacing:-.04em;font-weight:900;line-height:1.05;margin-bottom:7px}.header p{color:var(--muted);font-size:13px;line-height:1.65;max-width:920px}.header-right{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:stretch}.lang-toggle{display:flex;gap:6px;align-self:flex-start;background:rgba(255,255,255,.68);border:1px solid rgba(223,216,206,.9);border-radius:999px;padding:5px;box-shadow:0 8px 22px rgba(31,26,19,.05)}.lang-toggle button{border:none;border-radius:999px;background:transparent;color:var(--muted);font-weight:800;font-size:12px;padding:7px 12px;cursor:pointer}.lang-toggle button.active{background:var(--ink);color:#fff}.hero-kpi{min-width:142px;background:rgba(255,255,255,.72);border:1px solid rgba(223,216,206,.9);border-radius:16px;padding:13px 16px;box-shadow:0 10px 26px rgba(31,26,19,.05)}.hero-kpi .label{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px}.hero-kpi .value{font-size:30px;font-weight:900;letter-spacing:-.05em}.nav{display:flex;gap:0;border-bottom:1px solid var(--line);background:rgba(255,255,255,.82);position:sticky;top:0;z-index:20;padding:0 34px;overflow-x:auto;backdrop-filter:blur(12px)}.nav button{border:none;background:transparent;padding:15px 18px;cursor:pointer;color:var(--muted);font-weight:800;border-bottom:3px solid transparent;white-space:nowrap}.nav button:hover{color:var(--ink)}.nav button.active{color:var(--ink);border-bottom-color:var(--ink)}.main{padding:24px 42px 36px}.page{display:none}.page.active{display:block}.filter-panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:20px;box-shadow:var(--shadow)}.filters{display:grid;grid-template-columns:1.5fr repeat(5,1fr) auto;gap:10px;align-items:end}.fg{display:flex;flex-direction:column;gap:6px}.fg label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:900}.fg input,.fg select{height:38px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);padding:0 11px;font:inherit;font-size:13px;outline:none}.fg input:focus,.fg select:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(15,118,110,.08)}.btn{height:38px;border:none;border-radius:10px;background:var(--ink);color:#fff;padding:0 14px;font-weight:900;cursor:pointer;white-space:nowrap}.btn.secondary{background:#fff;color:var(--muted);border:1px solid var(--line)}.btn.secondary:hover{color:var(--ink);background:var(--surface2)}.note{background:#fff8eb;border:1px solid #fed7aa;color:#7c2d12;border-radius:16px;padding:13px 16px;font-size:13px;line-height:1.65;margin-bottom:18px}.grid-kpi{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}.kpi .k-label{font-size:11px;color:var(--muted);font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}.kpi .k-value{font-size:34px;font-weight:900;letter-spacing:-.05em}.kpi .k-sub{color:var(--muted);font-size:12px;margin-top:6px;line-height:1.45}.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}.section-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}.section-title h2{font-size:16px;font-weight:900;letter-spacing:-.02em}.section-title .sub{font-size:12px;color:var(--muted)}.chart-box{height:340px;position:relative}.region-layout{display:grid;grid-template-columns:250px 1fr;gap:18px}.side-list{display:flex;flex-direction:column;gap:7px}.region-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-weight:900;transition:.12s}.region-card:hover{background:var(--surface2)}.region-card.active{background:var(--ink);color:#fff;border-color:var(--ink)}.region-card small{color:var(--muted);font-weight:900}.region-card.active small{color:rgba(255,255,255,.7)}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fff}table{width:100%;border-collapse:collapse;font-size:13px}th{background:var(--surface2);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:none}tr:hover td{background:#faf8f3}.pill{display:inline-flex;align-items:center;border-radius:999px;padding:3px 9px;font-size:11px;font-weight:900;white-space:nowrap}.pill.region{background:#eef2ff;color:#3730a3}.pill.type{background:#ecfdf5;color:#065f46}.pill.status-有效{background:#dcfce7;color:#166534}.pill.status-长期有效{background:#cffafe;color:#155e75}.pill.status-12个月内到期{background:#fef3c7;color:#92400e}.pill.status-已过期{background:#fee2e2;color:#991b1b}.pill.status-未标注到期日{background:#f3f4f6;color:#4b5563}.pill.status-需人工确认{background:#fae8ff;color:#86198f}.meta-row{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:13px;margin:8px 0 12px;flex-wrap:wrap}.comp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.comp-item{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff}.comp-head{display:flex;justify-content:space-between;font-weight:900;font-size:12px;margin-bottom:8px;gap:8px}.comp-bar{height:8px;background:var(--surface2);border-radius:999px;overflow:hidden}.comp-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--blue));border-radius:999px}.footer-note{color:var(--muted);font-size:12px;line-height:1.55;margin-top:14px}.export-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:12px}@media(max-width:1150px){.grid-kpi{grid-template-columns:repeat(3,1fr)}.chart-grid,.region-layout{grid-template-columns:1fr}.filters{grid-template-columns:1fr 1fr}}@media(max-width:700px){.header,.main{padding-left:18px;padding-right:18px}.grid-kpi,.comp-grid,.filters{grid-template-columns:1fr}h1{font-size:28px}}@media print{.nav,.filter-panel,.export-row,.lang-toggle{display:none}body{background:#fff}.main{padding:10px}.card{box-shadow:none}}
@@ -64,6 +65,7 @@
 #uploadStatus.ok{color:#16a34a}
 .up-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 .up-actions button:disabled{opacity:.55;cursor:not-allowed}
+.up-divider{text-align:center;font-size:11px;color:var(--muted);font-weight:800;margin:14px 0}
 </style>
 </head>
 <body>
@@ -97,9 +99,14 @@
 <!-- PDF Upload Modal -->
 <div id="uploadOverlay" role="dialog" aria-modal="true" aria-label="Upload PDF" onclick="if(event.target===this)closeUploadModal()">
   <div id="uploadBox">
-    <h3 id="uploadTitle">上传协议 PDF</h3>
-    <p class="up-sub" id="uploadSub">将上传到你的 Google Drive「China_MOU_Documents」资料夹，并把连结存到这台电脑的浏览器（不会改到 GitHub 上的 Excel）。</p>
+    <h3 id="uploadTitle">连结协议 PDF</h3>
+    <p class="up-sub" id="uploadSub">你可以直接从自己 Google Drive 里选一个已经上传好的 PDF，或者用下面的表单直接上传新档案。</p>
     <div class="up-row">
+      <button class="btn" type="button" onclick="openDrivePicker()" id="pickDriveBtn" style="width:100%">📂 <span id="pickDriveLabel">从 Google Drive 选择已上传的档案</span></button>
+    </div>
+    <div class="up-divider" id="uploadDivider">— 或者 / or —</div>
+    <div class="up-row">
+      <label style="font-size:12px;color:var(--muted);font-weight:800" id="uploadNewLabel">直接上传新档案：</label>
       <input type="file" id="uploadFileInput" accept="application/pdf" />
     </div>
     <div class="up-row">
@@ -108,7 +115,7 @@
     <div id="uploadStatus"></div>
     <div class="up-actions">
       <button class="btn secondary" type="button" onclick="closeUploadModal()" id="uploadCancelBtn">取消</button>
-      <button class="btn" type="button" onclick="submitUpload()" id="uploadSubmitBtn">上传</button>
+      <button class="btn" type="button" onclick="submitUpload()" id="uploadSubmitBtn">上传新档案</button>
     </div>
   </div>
 </div>
@@ -300,6 +307,11 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePdf();closeUpl
 //    Authorized JavaScript origins 填 https://joeyaj.github.io
 // 4) 把下面 GOOGLE_CLIENT_ID 换成你拿到的 Client ID（这不是密钥，可以放在前端）
 const GOOGLE_CLIENT_ID = '243189851204-0jpjas6krecpebdmujv3mhcrp210ndkf.apps.googleusercontent.com';
+// Google Picker 需要另外一把「API 金鑰」(不是 Client ID)：
+// 同一个 Cloud 专案 → 已启用的 API 和服务 → 启用「Google Picker API」
+// 然后 憑證(Credentials) → 建立憑證 → API 金鑰，建好后把下面换成你的 Key
+// 建议把这把 Key 限制在「HTTP 转介来源」= https://joeyaj.github.io/* ，并限制只能用 Google Picker API
+const GOOGLE_API_KEY = 'AIzaSyADMsw_-8r5S1D8U3bYwnwmOArlsUhN9BQ';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FOLDER_NAME = 'China_MOU_Documents';
 const LS_OVERRIDES_KEY = 'mouPdfOverrides_v1';
@@ -405,12 +417,89 @@ async function driveSetPublic(token,fileId){
     body:JSON.stringify({role:'reader',type:'anyone'})
   });
 }
+function pickerConfigured(){return GOOGLE_API_KEY && !GOOGLE_API_KEY.startsWith('PASTE_')}
+let pickerLibPromise=null;
+function loadPickerLib(){
+  if(pickerLibPromise)return pickerLibPromise;
+  pickerLibPromise=new Promise((resolve,reject)=>{
+    if(typeof gapi==='undefined'){reject(new Error('Google API 载入失败，请检查网络后重新整理页面'));return}
+    gapi.load('picker',{callback:resolve,onerror:()=>reject(new Error('Google Picker 载入失败'))});
+  });
+  return pickerLibPromise;
+}
+async function openDrivePicker(){
+  const r=uploadCtx;
+  const statusEl=document.getElementById('uploadStatus');
+  if(!r)return;
+  if(!driveConfigured()){
+    statusEl.textContent=LANG==='zh'?'尚未设定 Google Client ID。':'Google Client ID not configured.';
+    statusEl.className='error';
+    return;
+  }
+  if(!pickerConfigured()){
+    statusEl.textContent=LANG==='zh'?'尚未设定 Google API 金钥（GOOGLE_API_KEY），请先在 Cloud Console 建立并贴到 index.html。':LANG==='ko'?'Google API 키가 설정되지 않았습니다.':'Google API Key (GOOGLE_API_KEY) is not configured yet.';
+    statusEl.className='error';
+    return;
+  }
+  const pickBtn=document.getElementById('pickDriveBtn');
+  try{
+    pickBtn.disabled=true;
+    statusEl.className='';
+    statusEl.textContent=LANG==='zh'?'正在连接 Google 帐号…':LANG==='ko'?'Google 계정에 연결 중…':'Connecting to Google account…';
+    const token=await ensureDriveToken();
+    updateDriveStatusUI();
+    statusEl.textContent=LANG==='zh'?'正在开启 Google Drive 选择窗口…':LANG==='ko'?'Google Drive 선택 창 여는 중…':'Opening Google Drive picker…';
+    await loadPickerLib();
+    const view=new google.picker.DocsView(google.picker.ViewId.DOCS)
+      .setMimeTypes('application/pdf')
+      .setIncludeFolders(true)
+      .setSelectFolderEnabled(false);
+    const picker=new google.picker.PickerBuilder()
+      .addView(view)
+      .setOAuthToken(token)
+      .setDeveloperKey(GOOGLE_API_KEY)
+      .setCallback(pickerCallback)
+      .setTitle(LANG==='zh'?'选择协议 PDF':LANG==='ko'?'협약 PDF 선택':'Select agreement PDF')
+      .build();
+    picker.setVisible(true);
+    statusEl.textContent='';
+  }catch(err){
+    statusEl.textContent=(LANG==='zh'?'发生错误：':LANG==='ko'?'오류: ':'Error: ')+err.message;
+    statusEl.className='error';
+  }finally{
+    pickBtn.disabled=false;
+  }
+}
+function pickerCallback(data){
+  if(data.action!==google.picker.Action.PICKED)return;
+  const r=uploadCtx;
+  if(!r)return;
+  const doc=data.docs[0];
+  const url=doc.url||`https://drive.google.com/file/d/${doc.id}/view?usp=drivesdk`;
+  saveOverride(rowOverrideKey(r),url);
+  applyLocalPdfOverrides(RAW);
+  updateAll();
+  const statusEl=document.getElementById('uploadStatus');
+  if(statusEl){
+    statusEl.textContent=LANG==='zh'?'已连结！记得确认这个档案在 Drive 里的分享权限是「知道连结的人可查看」，其他人才看得到。':LANG==='ko'?'연결 완료! Drive 공유 권한을 확인하세요.':'Linked! Make sure the file sharing permission on Drive allows others to view it.';
+    statusEl.className='ok';
+  }
+  setTimeout(closeUploadModal,1600);
+}
 function openUploadModal(r){
   uploadCtx=r;
   document.getElementById('uploadFileInput').value='';
   const statusEl=document.getElementById('uploadStatus');
   statusEl.textContent='';statusEl.className='';
-  document.getElementById('uploadTitle').textContent=(LANG==='zh'?'上传协议 PDF － ':LANG==='ko'?'협약 PDF 업로드 － ':'Upload Agreement PDF － ')+displayName(r);
+  const zh=LANG==='zh', ko=LANG==='ko';
+  document.getElementById('uploadTitle').textContent=(zh?'连结协议 PDF － ':ko?'협약 PDF 연결 － ':'Link Agreement PDF － ')+displayName(r);
+  document.getElementById('uploadSub').textContent=zh?'你可以直接从自己 Google Drive 里选一个已经上传好的 PDF，或者用下面的表单直接上传新档案。':ko?'Google Drive에서 이미 업로드된 PDF를 선택하거나, 아래에서 새 파일을 업로드할 수 있습니다.':'Pick an existing PDF from your Google Drive, or upload a new file below.';
+  document.getElementById('pickDriveLabel').textContent=zh?'从 Google Drive 选择已上传的档案':ko?'Google Drive에서 업로드된 파일 선택':'Select an existing file from Google Drive';
+  document.getElementById('uploadDivider').textContent=zh?'— 或者 —':ko?'— 또는 —':'— or —';
+  document.getElementById('uploadNewLabel').textContent=zh?'直接上传新档案：':ko?'새 파일 업로드:':'Upload a new file:';
+  document.getElementById('uploadPublicLabel').textContent=zh?'上传后设为「知道连结的人皆可查看」':ko?'업로드 후 "링크가 있는 모든 사용자"로 공유':'Set to "anyone with the link" after upload';
+  document.getElementById('uploadCancelBtn').textContent=zh?'取消':ko?'취소':'Cancel';
+  document.getElementById('uploadSubmitBtn').textContent=zh?'上传新档案':ko?'새 파일 업로드':'Upload new file';
   if(!driveConfigured()){
     statusEl.textContent=LANG==='zh'?'尚未设定 Google Client ID，请先完成设定（见程式码注解）。':LANG==='ko'?'Google Client ID가 설정되지 않았습니다.':'Google Client ID is not configured yet.';
     statusEl.className='error';
