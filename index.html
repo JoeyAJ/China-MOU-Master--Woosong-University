@@ -117,6 +117,7 @@
       <label class="chk"><input type="checkbox" id="uploadPublicChk" checked /> <span id="uploadPublicLabel">上传后设为「知道连结的人皆可查看」</span></label>
     </div>
     <div id="uploadStatus"></div>
+    <div style="text-align:right"><button type="button" class="local-clear" style="color:var(--muted);text-decoration:underline" onclick="resetGithubToken()" id="resetGithubLabel">重新设定 GitHub 同步权限</button></div>
     <div class="up-actions">
       <button class="btn secondary" type="button" onclick="closeUploadModal()" id="uploadCancelBtn">取消</button>
       <button class="btn" type="button" onclick="submitUpload()" id="uploadSubmitBtn">上传新档案</button>
@@ -133,6 +134,10 @@ const EXCEL_PATHS = [
 ];
 const EXCEL_SHEET_NAME = 'China_MOU_Master';
 function normalizeCellValue(v){return String(v??'').trim()}
+function parseDocumentUrls(raw){
+  if(!raw)return [];
+  return String(raw).split(/[；;\n]+/).map(s=>s.trim()).filter(s=>/^https?:\/\//i.test(s));
+}
 function pick(row, names){for(const name of names){if(Object.prototype.hasOwnProperty.call(row,name)){return normalizeCellValue(row[name])}}return ''}
 function parseSignedYear(v){const m=String(v??'').match(/(19|20)\d{2}/);return m?Number(m[0]):null}
 function parseCounterpartyGroup(v){const s=normalizeCellValue(v);if(!s)return '';return s.split('/')[0].split('；')[0].split(';')[0].trim()}
@@ -157,7 +162,8 @@ function excelRowToRecord(row, index){
     counterpartyType,
     counterpartyGroup: parseCounterpartyGroup(counterpartyType),
     notes: pick(row,['Notes','备注','备注栏位']),
-    documentUrl: pick(row,['Document URL','DocumentURL','协议链接','文件链接','PDF链接','链接URL'])
+    documentUrl: pick(row,['Document URL','DocumentURL','协议链接','文件链接','PDF链接','链接URL']),
+    documentUrls: parseDocumentUrls(pick(row,['Document URL','DocumentURL','协议链接','文件链接','PDF链接','链接URL']))
   }
 }
 function summarizeRows(rows){
@@ -200,7 +206,7 @@ async function fetchExcelArrayBuffer(){
 }
 async function loadExcelData(){
   if(typeof XLSX==='undefined') throw new Error('SheetJS XLSX library failed to load.');
-  const {buffer,path,lastModified}=await fetchExcelArrayBuffer();
+  const [{buffer,path,lastModified}]=await Promise.all([fetchExcelArrayBuffer(), fetchSharedOverrides().then(o=>{SHARED_OVERRIDES=o})]);
   const workbook=XLSX.read(buffer,{type:'array',cellDates:true});
   const sourceDate=lastModified?new Date(lastModified):((workbook.Props&&workbook.Props.Modified)?new Date(workbook.Props.Modified):new Date());
   setDataDate(sourceDate);
@@ -355,13 +361,87 @@ function normalizeOverrideEntry(v){
   return [];
 }
 function applyLocalPdfOverrides(rows){
-  const m=loadOverrides();
+  const local=loadOverrides();
   rows.forEach(r=>{
-    const k=rowOverrideKey(r), list=normalizeOverrideEntry(m[k]);
+    const k=rowOverrideKey(r);
+    // 本机（这台浏览器）尚未同步成功的暂存优先，其次用大家共享的 pdf-overrides.json，最后才是 Excel 原本的连结
+    const raw=Object.prototype.hasOwnProperty.call(local,k)?local[k]:SHARED_OVERRIDES[k];
+    const list=normalizeOverrideEntry(raw);
     r.localPdfList=list;
-    r.localPdf=list.length>0;
-    r.pdfList=list.length?list:(r.documentUrl?[{url:r.documentUrl,name:''}]:[]);
+    r.localPdf=list.length>0 && !Object.prototype.hasOwnProperty.call(SHARED_OVERRIDES,k);
+    r.pdfList=list.length?list:(r.documentUrls&&r.documentUrls.length?r.documentUrls.map(u=>({url:u,name:''})):[]);
   });
+}
+/* ── GitHub 同步（让所有访客都看得到上传结果）───────────── */
+const GITHUB_OWNER='joeyaj', GITHUB_REPO='China-MOU-Master--Woosong-University';
+const GITHUB_OVERRIDES_PATH='pdf-overrides.json';
+const LS_GITHUB_TOKEN_KEY='mouGithubToken_v1';
+let SHARED_OVERRIDES={};
+let cachedDefaultBranch=null;
+function utf8ToBase64(str){return btoa(unescape(encodeURIComponent(str)))}
+function base64ToUtf8(b64){return decodeURIComponent(escape(atob(String(b64).replace(/\n/g,''))))}
+function getGithubToken(promptIfMissing){
+  let t=localStorage.getItem(LS_GITHUB_TOKEN_KEY);
+  if(!t && promptIfMissing){
+    t=prompt(LANG==='zh'?'请贴上你的 GitHub Personal Access Token（只需要设定一次，只会存在这台电脑的浏览器里，用来把 PDF 连结同步给所有访客）：':LANG==='ko'?'GitHub Personal Access Token을 붙여넣으세요 (이 브라우저에만 저장됩니다):':'Paste your GitHub Personal Access Token (stored only in this browser):');
+    if(t){t=t.trim();if(t)localStorage.setItem(LS_GITHUB_TOKEN_KEY,t)}
+  }
+  return t?t.trim():null;
+}
+function resetGithubToken(){
+  localStorage.removeItem(LS_GITHUB_TOKEN_KEY);
+  showToast(LANG==='zh'?'已清除 GitHub 权限，下次同步时会重新询问。':LANG==='ko'?'GitHub 토큰이 삭제되었습니다.':'GitHub token cleared.','ok');
+}
+async function githubApi(path,options={}){
+  const token=getGithubToken(true);
+  if(!token)throw new Error(LANG==='zh'?'需要 GitHub 权限才能同步给所有人':LANG==='ko'?'GitHub 권한이 필요합니다':'GitHub token is required to sync');
+  const headers=Object.assign({Accept:'application/vnd.github+json'},options.headers||{});
+  headers.Authorization=`Bearer ${token}`;
+  const res=await fetch(`https://api.github.com${path}`,Object.assign({},options,{headers}));
+  if(res.status===401){resetGithubToken();throw new Error(LANG==='zh'?'GitHub 权限无效或已过期，请重新设定后再试一次':LANG==='ko'?'GitHub 토큰이 유효하지 않습니다':'GitHub token is invalid or expired')}
+  return res;
+}
+async function getDefaultBranch(){
+  if(cachedDefaultBranch)return cachedDefaultBranch;
+  try{
+    const res=await githubApi(`/repos/${GITHUB_OWNER}/${GITHUB_REPO}`);
+    const json=await res.json();
+    cachedDefaultBranch=json.default_branch||'main';
+  }catch(e){cachedDefaultBranch='main'}
+  return cachedDefaultBranch;
+}
+async function fetchSharedOverrides(){
+  try{
+    const url=GITHUB_OVERRIDES_PATH+'?v='+Date.now();
+    const res=await fetch(url,{cache:'no-store'});
+    if(!res.ok)return {};
+    return await res.json();
+  }catch(e){return {}}
+}
+async function syncOverrideToGithub(key,list){
+  const branch=await getDefaultBranch();
+  let sha=null, current={};
+  const getRes=await githubApi(`/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_OVERRIDES_PATH}?ref=${branch}`);
+  if(getRes.status===200){
+    const getJson=await getRes.json();
+    sha=getJson.sha;
+    try{current=JSON.parse(base64ToUtf8(getJson.content))}catch(e){current={}}
+  }else if(getRes.status!==404){
+    throw new Error('GitHub API '+getRes.status);
+  }
+  if(list===null){delete current[key]}else{current[key]=list}
+  const body={
+    message:`Update PDF link (${(key.split('||')[0])||'MOU'})`,
+    content:utf8ToBase64(JSON.stringify(current,null,2)),
+    branch
+  };
+  if(sha)body.sha=sha;
+  const putRes=await githubApi(`/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_OVERRIDES_PATH}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!putRes.ok){
+    const errJson=await putRes.json().catch(()=>({}));
+    throw new Error(errJson.message||('GitHub API '+putRes.status));
+  }
+  SHARED_OVERRIDES=current;
 }
 function driveConfigured(){return GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith('PASTE_')}
 function updateDriveStatusUI(){
@@ -498,6 +578,20 @@ async function openDrivePicker(){
     pickBtn.disabled=false;
   }
 }
+async function finalizeOverride(key,list,successMsgBase){
+  saveOverrideList(key,list);
+  applyLocalPdfOverrides(RAW);
+  updateAll();
+  showToast(LANG==='zh'?`${successMsgBase}正在同步到 GitHub…`:LANG==='ko'?`${successMsgBase}GitHub 동기화 중…`:`${successMsgBase}Syncing to GitHub…`);
+  try{
+    await syncOverrideToGithub(key,list);
+    applyLocalPdfOverrides(RAW);
+    updateAll();
+    showToast(LANG==='zh'?'已同步！大约 1 分钟后所有访客都能看到（GitHub Pages 需要一点时间重新部署）。':LANG==='ko'?'동기화 완료! 약 1분 후 모두에게 반영됩니다.':'Synced! It may take ~1 minute for GitHub Pages to redeploy for other visitors.','ok');
+  }catch(err){
+    showToast((LANG==='zh'?'同步到 GitHub 失败：':LANG==='ko'?'GitHub 동기화 실패: ':'GitHub sync failed: ')+err.message+(LANG==='zh'?'（这台电脑上仍看得到，但其他人暂时还看不到）':''),'error');
+  }
+}
 function pickerCallback(data){
   if(data.action===google.picker.Action.CANCEL){pickerRowCtx=null;return}
   if(data.action!==google.picker.Action.PICKED)return;
@@ -509,11 +603,8 @@ function pickerCallback(data){
     name:doc.name||''
   }));
   if(!list.length)return;
-  saveOverrideList(rowOverrideKey(r),list);
-  applyLocalPdfOverrides(RAW);
-  updateAll();
-  const msg=LANG==='zh'?`已连结 ${list.length} 个档案！记得确认这些档案在 Drive 里的分享权限是「知道连结的人可查看」，其他人才看得到。`:LANG==='ko'?`${list.length}개 파일 연결 완료! Drive 공유 권한을 확인하세요.`:`Linked ${list.length} file(s)! Make sure the sharing permission on Drive allows others to view them.`;
-  showToast(msg,'ok');
+  const base=LANG==='zh'?`已连结 ${list.length} 个档案！记得确认这些档案在 Drive 里的分享权限是「知道连结的人可查看」，其他人才看得到。`:LANG==='ko'?`${list.length}개 파일 연결 완료! Drive 공유 권한을 확인하세요.`:`Linked ${list.length} file(s)! Make sure the sharing permission on Drive allows others to view them.`;
+  finalizeOverride(rowOverrideKey(r),list,base+' ');
 }
 function openUploadModal(r){
   uploadCtx=r;
@@ -529,6 +620,7 @@ function openUploadModal(r){
   document.getElementById('uploadPublicLabel').textContent=zh?'上传后设为「知道连结的人皆可查看」':ko?'업로드 후 "링크가 있는 모든 사용자"로 공유':'Set to "anyone with the link" after upload';
   document.getElementById('uploadCancelBtn').textContent=zh?'取消':ko?'취소':'Cancel';
   document.getElementById('uploadSubmitBtn').textContent=zh?'上传新档案':ko?'새 파일 업로드':'Upload new file';
+  document.getElementById('resetGithubLabel').textContent=zh?'重新设定 GitHub 同步权限':ko?'GitHub 동기화 권한 재설정':'Reset GitHub sync token';
   if(!driveConfigured()){
     statusEl.textContent=LANG==='zh'?'尚未设定 Google Client ID，请先完成设定（见程式码注解）。':LANG==='ko'?'Google Client ID가 설정되지 않았습니다.':'Google Client ID is not configured yet.';
     statusEl.className='error';
@@ -542,11 +634,18 @@ function closeUploadModal(){
   uploadCtx=null;
 }
 function removeLocalPdf(r){
-  const ok=confirm(LANG==='zh'?'确定要清除这笔本机上传的 PDF 连结吗？（不会删除 Drive 上的档案，只是让 Dashboard 改回读取 Excel 里的连结）':LANG==='ko'?'로컬에 저장된 PDF 링크를 지울까요?':'Remove this locally-saved PDF link?');
+  const ok=confirm(LANG==='zh'?'确定要清除这笔连结吗？（不会删除 Drive 上的档案，只是让 Dashboard 改回读取 Excel 里的连结，并同步给所有访客）':LANG==='ko'?'이 링크를 삭제할까요?':'Remove this PDF link?');
   if(!ok)return;
-  clearOverride(rowOverrideKey(r));
+  const key=rowOverrideKey(r);
+  clearOverride(key);
   applyLocalPdfOverrides(RAW);
   updateAll();
+  syncOverrideToGithub(key,null).then(()=>{
+    applyLocalPdfOverrides(RAW);updateAll();
+    showToast(LANG==='zh'?'已同步清除，大约 1 分钟后所有访客都会看到更新。':LANG==='ko'?'동기화 완료.':'Synced.','ok');
+  }).catch(err=>{
+    showToast((LANG==='zh'?'同步到 GitHub 失败：':'GitHub sync failed: ')+err.message,'error');
+  });
 }
 async function submitUpload(){
   const r=uploadCtx;
@@ -593,9 +692,15 @@ async function submitUpload(){
     saveOverrideList(rowOverrideKey(r),results);
     applyLocalPdfOverrides(RAW);
     updateAll();
-    statusEl.textContent=LANG==='zh'?`上传成功！已更新此笔记录的 ${results.length} 个 PDF 连结（仅存在这台电脑的浏览器里）。`:LANG==='ko'?`업로드 완료! ${results.length}개 파일이 이 브라우저에만 저장되었습니다.`:`Upload complete! ${results.length} link(s) saved in this browser only.`;
+    statusEl.textContent=LANG==='zh'?`上传成功！已更新此笔记录的 ${results.length} 个 PDF 连结，正在同步给所有访客…`:LANG==='ko'?`업로드 완료! ${results.length}개 파일, GitHub 동기화 중…`:`Upload complete! ${results.length} link(s), syncing to GitHub…`;
     statusEl.className='ok';
     setTimeout(closeUploadModal,1400);
+    syncOverrideToGithub(rowOverrideKey(r),results).then(()=>{
+      applyLocalPdfOverrides(RAW);updateAll();
+      showToast(LANG==='zh'?'已同步！大约 1 分钟后所有访客都能看到（GitHub Pages 需要一点时间重新部署）。':LANG==='ko'?'동기화 완료! 약 1분 후 모두에게 반영됩니다.':'Synced! It may take ~1 minute for GitHub Pages to redeploy for other visitors.','ok');
+    }).catch(err=>{
+      showToast((LANG==='zh'?'同步到 GitHub 失败：':LANG==='ko'?'GitHub 동기화 실패: ':'GitHub sync failed: ')+err.message+(LANG==='zh'?'（这台电脑上仍看得到，但其他人暂时还看不到）':''),'error');
+    });
   }catch(err){
     statusEl.textContent=(LANG==='zh'?'发生错误：':LANG==='ko'?'오류: ':'Error: ')+err.message;
     statusEl.className='error';
