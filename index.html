@@ -66,6 +66,10 @@
 .up-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 .up-actions button:disabled{opacity:.55;cursor:not-allowed}
 .up-divider{text-align:center;font-size:11px;color:var(--muted);font-weight:800;margin:14px 0}
+#toastWrap{position:fixed;top:18px;right:18px;z-index:9500;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--ink);color:#fff;border-radius:10px;padding:11px 16px;font-size:12px;font-weight:700;box-shadow:0 14px 34px rgba(0,0,0,.25);max-width:320px;line-height:1.5}
+.toast.ok{background:#065f46}
+.toast.error{background:#991b1b}
 </style>
 </head>
 <body>
@@ -107,7 +111,7 @@
     <div class="up-divider" id="uploadDivider">— 或者 / or —</div>
     <div class="up-row">
       <label style="font-size:12px;color:var(--muted);font-weight:800" id="uploadNewLabel">直接上传新档案：</label>
-      <input type="file" id="uploadFileInput" accept="application/pdf" />
+      <input type="file" id="uploadFileInput" accept="application/pdf" multiple />
     </div>
     <div class="up-row">
       <label class="chk"><input type="checkbox" id="uploadPublicChk" checked /> <span id="uploadPublicLabel">上传后设为「知道连结的人皆可查看」</span></label>
@@ -119,6 +123,7 @@
     </div>
   </div>
 </div>
+<div id="toastWrap"></div>
 
 <script>
 let RAW = [];
@@ -316,7 +321,17 @@ const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FOLDER_NAME = 'China_MOU_Documents';
 const LS_OVERRIDES_KEY = 'mouPdfOverrides_v1';
 const LS_FOLDER_KEY = 'mouDriveFolderId_v1';
-let driveAccessToken = null, driveTokenExpiry = 0, driveTokenClient = null, uploadCtx = null;
+let driveAccessToken = null, driveTokenExpiry = 0, driveTokenClient = null, uploadCtx = null, pickerRowCtx = null;
+
+function showToast(msg,type){
+  const wrap=document.getElementById('toastWrap');
+  if(!wrap)return;
+  const el=document.createElement('div');
+  el.className='toast'+(type?' '+type:'');
+  el.textContent=msg;
+  wrap.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),320)},4200);
+}
 
 function rowOverrideKey(r){
   return [r.chineseName||'',r.koreanName||'',r.signedRaw||'',r.endRaw||''].join('||');
@@ -324,17 +339,28 @@ function rowOverrideKey(r){
 function loadOverrides(){
   try{return JSON.parse(localStorage.getItem(LS_OVERRIDES_KEY)||'{}')}catch(e){return {}}
 }
-function saveOverride(key,url){
-  const m=loadOverrides();m[key]=url;localStorage.setItem(LS_OVERRIDES_KEY,JSON.stringify(m));
+// value 是一个数组 [{url,name}, ...]；每次都是整批取代（不是累加），
+// 所以同一列重新选择/上传一次，就会用最新那批取代旧的连结
+function saveOverrideList(key,list){
+  const m=loadOverrides();m[key]=list;localStorage.setItem(LS_OVERRIDES_KEY,JSON.stringify(m));
 }
 function clearOverride(key){
   const m=loadOverrides();delete m[key];localStorage.setItem(LS_OVERRIDES_KEY,JSON.stringify(m));
 }
+function normalizeOverrideEntry(v){
+  // 兼容旧版：旧版存的是单一字符串网址，新版存的是 [{url,name}] 数组
+  if(!v)return [];
+  if(typeof v==='string')return [{url:v,name:''}];
+  if(Array.isArray(v))return v.filter(x=>x&&x.url);
+  return [];
+}
 function applyLocalPdfOverrides(rows){
   const m=loadOverrides();
   rows.forEach(r=>{
-    const k=rowOverrideKey(r), url=m[k];
-    if(url){r.documentUrl=url;r.localPdf=true}else{r.localPdf=false}
+    const k=rowOverrideKey(r), list=normalizeOverrideEntry(m[k]);
+    r.localPdfList=list;
+    r.localPdf=list.length>0;
+    r.pdfList=list.length?list:(r.documentUrl?[{url:r.documentUrl,name:''}]:[]);
   });
 }
 function driveConfigured(){return GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith('PASTE_')}
@@ -448,7 +474,6 @@ async function openDrivePicker(){
     statusEl.textContent=LANG==='zh'?'正在连接 Google 帐号…':LANG==='ko'?'Google 계정에 연결 중…':'Connecting to Google account…';
     const token=await ensureDriveToken();
     updateDriveStatusUI();
-    statusEl.textContent=LANG==='zh'?'正在开启 Google Drive 选择窗口…':LANG==='ko'?'Google Drive 선택 창 여는 중…':'Opening Google Drive picker…';
     await loadPickerLib();
     const view=new google.picker.DocsView(google.picker.ViewId.DOCS)
       .setMimeTypes('application/pdf')
@@ -456,13 +481,16 @@ async function openDrivePicker(){
       .setSelectFolderEnabled(false);
     const picker=new google.picker.PickerBuilder()
       .addView(view)
+      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
       .setOAuthToken(token)
       .setDeveloperKey(GOOGLE_API_KEY)
       .setCallback(pickerCallback)
-      .setTitle(LANG==='zh'?'选择协议 PDF':LANG==='ko'?'협약 PDF 선택':'Select agreement PDF')
+      .setTitle(LANG==='zh'?'选择协议 PDF（可按住 Cmd/Ctrl 多选）':LANG==='ko'?'협약 PDF 선택 (Cmd/Ctrl로 다중 선택)':'Select agreement PDF (Cmd/Ctrl-click for multiple)')
       .build();
+    // 先关掉上传视窗，避免它的 z-index 盖住 Google 选择窗口
+    pickerRowCtx=r;
+    closeUploadModal();
     picker.setVisible(true);
-    statusEl.textContent='';
   }catch(err){
     statusEl.textContent=(LANG==='zh'?'发生错误：':LANG==='ko'?'오류: ':'Error: ')+err.message;
     statusEl.className='error';
@@ -471,20 +499,21 @@ async function openDrivePicker(){
   }
 }
 function pickerCallback(data){
+  if(data.action===google.picker.Action.CANCEL){pickerRowCtx=null;return}
   if(data.action!==google.picker.Action.PICKED)return;
-  const r=uploadCtx;
+  const r=pickerRowCtx;
+  pickerRowCtx=null;
   if(!r)return;
-  const doc=data.docs[0];
-  const url=doc.url||`https://drive.google.com/file/d/${doc.id}/view?usp=drivesdk`;
-  saveOverride(rowOverrideKey(r),url);
+  const list=(data.docs||[]).map(doc=>({
+    url:doc.url||`https://drive.google.com/file/d/${doc.id}/view?usp=drivesdk`,
+    name:doc.name||''
+  }));
+  if(!list.length)return;
+  saveOverrideList(rowOverrideKey(r),list);
   applyLocalPdfOverrides(RAW);
   updateAll();
-  const statusEl=document.getElementById('uploadStatus');
-  if(statusEl){
-    statusEl.textContent=LANG==='zh'?'已连结！记得确认这个档案在 Drive 里的分享权限是「知道连结的人可查看」，其他人才看得到。':LANG==='ko'?'연결 완료! Drive 공유 권한을 확인하세요.':'Linked! Make sure the file sharing permission on Drive allows others to view it.';
-    statusEl.className='ok';
-  }
-  setTimeout(closeUploadModal,1600);
+  const msg=LANG==='zh'?`已连结 ${list.length} 个档案！记得确认这些档案在 Drive 里的分享权限是「知道连结的人可查看」，其他人才看得到。`:LANG==='ko'?`${list.length}개 파일 연결 완료! Drive 공유 권한을 확인하세요.`:`Linked ${list.length} file(s)! Make sure the sharing permission on Drive allows others to view them.`;
+  showToast(msg,'ok');
 }
 function openUploadModal(r){
   uploadCtx=r;
@@ -523,7 +552,7 @@ async function submitUpload(){
   const r=uploadCtx;
   if(!r)return;
   const fileInput=document.getElementById('uploadFileInput');
-  const file=fileInput.files && fileInput.files[0];
+  const files=fileInput.files?Array.from(fileInput.files):[];
   const statusEl=document.getElementById('uploadStatus');
   const submitBtn=document.getElementById('uploadSubmitBtn');
   if(!driveConfigured()){
@@ -531,12 +560,12 @@ async function submitUpload(){
     statusEl.className='error';
     return;
   }
-  if(!file){
-    statusEl.textContent=LANG==='zh'?'请先选择一个 PDF 档案。':LANG==='ko'?'PDF 파일을 선택하세요.':'Please choose a PDF file first.';
+  if(!files.length){
+    statusEl.textContent=LANG==='zh'?'请先选择至少一个 PDF 档案。':LANG==='ko'?'PDF 파일을 선택하세요.':'Please choose at least one PDF file.';
     statusEl.className='error';
     return;
   }
-  if(file.type!=='application/pdf'){
+  if(files.some(f=>f.type!=='application/pdf')){
     statusEl.textContent=LANG==='zh'?'只能上传 PDF 档案。':LANG==='ko'?'PDF 파일만 업로드할 수 있습니다.':'Only PDF files are supported.';
     statusEl.className='error';
     return;
@@ -549,18 +578,22 @@ async function submitUpload(){
     updateDriveStatusUI();
     statusEl.textContent=LANG==='zh'?'正在建立/寻找资料夹…':LANG==='ko'?'폴더 확인 중…':'Preparing folder…';
     const folderId=await driveFindOrCreateFolder(token);
-    statusEl.textContent=LANG==='zh'?'正在上传 PDF…':LANG==='ko'?'PDF 업로드 중…':'Uploading PDF…';
-    const displayName=`${r.chineseName||r.koreanName||'MOU'}_${r.signedRaw||''}.pdf`.replace(/[\\/:*?"<>|]/g,'_');
-    const fileId=await driveUploadFile(token,file,folderId,displayName);
-    if(document.getElementById('uploadPublicChk').checked){
-      statusEl.textContent=LANG==='zh'?'正在设定分享权限…':LANG==='ko'?'공유 권한 설정 중…':'Setting sharing permission…';
-      await driveSetPublic(token,fileId);
+    const results=[];
+    for(let i=0;i<files.length;i++){
+      const file=files[i];
+      statusEl.textContent=(LANG==='zh'?`正在上传 PDF（${i+1}/${files.length}）…`:LANG==='ko'?`PDF 업로드 중 (${i+1}/${files.length})…`:`Uploading PDF (${i+1}/${files.length})…`);
+      const base=`${r.chineseName||r.koreanName||'MOU'}_${r.signedRaw||''}`.replace(/[\\/:*?"<>|]/g,'_');
+      const displayName=files.length>1?`${base}_${i+1}.pdf`:`${base}.pdf`;
+      const fileId=await driveUploadFile(token,file,folderId,displayName);
+      if(document.getElementById('uploadPublicChk').checked){
+        await driveSetPublic(token,fileId);
+      }
+      results.push({url:`https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`,name:displayName});
     }
-    const url=`https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`;
-    saveOverride(rowOverrideKey(r),url);
+    saveOverrideList(rowOverrideKey(r),results);
     applyLocalPdfOverrides(RAW);
     updateAll();
-    statusEl.textContent=LANG==='zh'?'上传成功！已更新此笔记录的 PDF 连结（仅存在这台电脑的浏览器里）。':LANG==='ko'?'업로드 완료! 이 브라우저에만 저장되었습니다.':'Upload complete! The link is saved in this browser only.';
+    statusEl.textContent=LANG==='zh'?`上传成功！已更新此笔记录的 ${results.length} 个 PDF 连结（仅存在这台电脑的浏览器里）。`:LANG==='ko'?`업로드 완료! ${results.length}개 파일이 이 브라우저에만 저장되었습니다.`:`Upload complete! ${results.length} link(s) saved in this browser only.`;
     statusEl.className='ok';
     setTimeout(closeUploadModal,1400);
   }catch(err){
@@ -573,7 +606,7 @@ async function submitUpload(){
 /* ── drawDetails with PDF column ─────────────────────────── */
 function drawDetails(rows){
   dataMeta.textContent=interpolate(t('dataMeta'),{n:fmt(rows.length),total:fmt(RAW.length)});
-  const withPdf=rows.filter(r=>r.documentUrl).length;
+  const withPdf=rows.filter(r=>r.pdfList&&r.pdfList.length).length;
   const pct=rows.length?Math.round(withPdf/rows.length*100):0;
   const coverLabel=LANG==='ko'?`PDF 연결 ${withPdf}건 / ${rows.length}건 (${pct}%)`:LANG==='en'?`PDF linked: ${withPdf} / ${rows.length} (${pct}%)`:`已关联 PDF：${withPdf} / ${rows.length} 条（${pct}%）`;
   const coverageHtml=`<div class="pdf-coverage-bar"><span>${coverLabel}</span><div class="pdf-coverage-track"><div class="pdf-coverage-fill" style="width:${pct}%"></div></div></div>`;
@@ -582,15 +615,21 @@ function drawDetails(rows){
   if(!coverEl){coverEl=document.createElement('div');coverEl.id='pdfCoverageBar';metaEl.parentNode.insertBefore(coverEl,metaEl.nextSibling)}
   coverEl.innerHTML=coverageHtml;
   window.__detailRows=rows;
+  const viewLabel=LANG==='ko'?'보기':LANG==='en'?'View':'查看';
   const shown=rows.map((r,idx)=>{
-    const pdfBtn=r.documentUrl
-      ?`<button class="pdf-btn" data-url="${safe(r.documentUrl)}" data-title="${safe(displayName(r))}" onclick="openPdf(this.dataset.url,this.dataset.title)">📄 ${LANG==='ko'?'보기':LANG==='en'?'View':'查看'}</button>`
+    const list=r.pdfList||[];
+    const pdfBtns=list.length
+      ?list.map((doc,di)=>{
+          const label=list.length>1?`${viewLabel} ${di+1}`:viewLabel;
+          const titleAttr=doc.name?safe(doc.name):safe(displayName(r));
+          return `<button class="pdf-btn" data-url="${safe(doc.url)}" data-title="${titleAttr}" title="${titleAttr}" onclick="openPdf(this.dataset.url,this.dataset.title)">📄 ${label}</button>`;
+        }).join('')
       :`<span class="pdf-none">—</span>`;
     const uploadIconBtn=`<button class="upload-icon-btn" title="${LANG==='zh'?'上传/更换 PDF':LANG==='ko'?'PDF 업로드/교체':'Upload/replace PDF'}" onclick="openUploadModal(window.__detailRows[${idx}])">📎</button>`;
     const localTag=r.localPdf
       ?`<span class="local-tag">${LANG==='zh'?'本机上传':LANG==='ko'?'로컬 업로드':'Local upload'}</span><button class="local-clear" onclick="removeLocalPdf(window.__detailRows[${idx}])">${LANG==='zh'?'清除':LANG==='ko'?'지우기':'Clear'}</button>`
       :'';
-    const pdfCell=`<div class="upload-cell">${pdfBtn}${uploadIconBtn}${localTag}</div>`;
+    const pdfCell=`<div class="upload-cell">${pdfBtns}${uploadIconBtn}${localTag}</div>`;
     return`<tr><td>${safe(r.no)}</td><td><strong>${safe(displayName(r))}</strong><br><span style="color:#7b7468">${safe(subName(r))}</span></td><td><span class="pill region">${safe(val(r.region))}</span><br>${safe(val(r.province))}</td><td>${safe(r.campus)}</td><td><span class="pill type">${safe(r.programModel)}</span></td><td>${safe(val(r.counterpartyType))}</td><td>${safe(r.signedRaw)}<br><span style="color:#7b7468">${safe(r.endRaw)}</span></td><td><span class="${statusClass(r.status)}">${safe(val(r.status))}</span></td><td>${safe(r.notes)}</td><td style="white-space:nowrap">${pdfCell}</td></tr>`;
   });
   makeTable('detailTable',t('thDetail'),shown);
