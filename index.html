@@ -48,6 +48,10 @@
 .drive-status-btn.connected .dot{background:#16a34a}
 .drive-status-btn:hover{background:var(--surface2);color:var(--ink)}
 .upload-cell{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pdf-item{display:inline-flex;align-items:center;gap:2px}
+.pdf-item .pdf-btn{border-radius:8px 0 0 8px}
+.pdf-del-btn{width:20px;height:20px;border-radius:0 8px 8px 0;border:1px solid #bfdbfe;border-left:none;background:#eff6ff;color:#1d4ed8;cursor:pointer;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.pdf-del-btn:hover{background:#fee2e2;color:#991b1b;border-color:#fecaca}
 .upload-icon-btn{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
 .upload-icon-btn:hover{background:var(--surface2);color:var(--ink)}
 .local-tag{font-size:10px;color:#7c2d12;background:#fff7ed;border:1px solid #fed7aa;border-radius:999px;padding:2px 7px;font-weight:800;white-space:nowrap}
@@ -647,6 +651,37 @@ function removeLocalPdf(r){
     showToast((LANG==='zh'?'同步到 GitHub 失败：':'GitHub sync failed: ')+err.message,'error');
   });
 }
+function removeOnePdf(r,index){
+  const list=r.pdfList||[];
+  const target=list[index];
+  if(!target)return;
+  const ok=confirm(LANG==='zh'?`确定要删除这一份连结吗？（不会删除 Drive 上的档案本身，只是把它从这笔记录移除，并同步给所有访客）\n\n${target.name||target.url}`:LANG==='ko'?'이 링크를 삭제할까요?':'Delete this PDF link?');
+  if(!ok)return;
+  const key=rowOverrideKey(r);
+  const newList=list.filter((_,i)=>i!==index);
+  if(newList.length){
+    saveOverrideList(key,newList);
+    applyLocalPdfOverrides(RAW);
+    updateAll();
+    showToast(LANG==='zh'?'正在同步到 GitHub…':LANG==='ko'?'GitHub 동기화 중…':'Syncing to GitHub…');
+    syncOverrideToGithub(key,newList).then(()=>{
+      applyLocalPdfOverrides(RAW);updateAll();
+      showToast(LANG==='zh'?'已同步！大约 1 分钟后所有访客都能看到。':LANG==='ko'?'동기화 완료!':'Synced!','ok');
+    }).catch(err=>{
+      showToast((LANG==='zh'?'同步到 GitHub 失败：':'GitHub sync failed: ')+err.message,'error');
+    });
+  }else{
+    clearOverride(key);
+    applyLocalPdfOverrides(RAW);
+    updateAll();
+    syncOverrideToGithub(key,null).then(()=>{
+      applyLocalPdfOverrides(RAW);updateAll();
+      showToast(LANG==='zh'?'已同步清除，大约 1 分钟后所有访客都会看到更新。':LANG==='ko'?'동기화 완료.':'Synced.','ok');
+    }).catch(err=>{
+      showToast((LANG==='zh'?'同步到 GitHub 失败：':'GitHub sync failed: ')+err.message,'error');
+    });
+  }
+}
 async function submitUpload(){
   const r=uploadCtx;
   if(!r)return;
@@ -727,7 +762,8 @@ function drawDetails(rows){
       ?list.map((doc,di)=>{
           const label=list.length>1?`${viewLabel} ${di+1}`:viewLabel;
           const titleAttr=doc.name?safe(doc.name):safe(displayName(r));
-          return `<button class="pdf-btn" data-url="${safe(doc.url)}" data-title="${titleAttr}" title="${titleAttr}" onclick="openPdf(this.dataset.url,this.dataset.title)">📄 ${label}</button>`;
+          const delTitle=LANG==='zh'?'删除这份连结':LANG==='ko'?'이 링크 삭제':'Delete this link';
+          return `<span class="pdf-item"><button class="pdf-btn" data-url="${safe(doc.url)}" data-title="${titleAttr}" title="${titleAttr}" onclick="openPdf(this.dataset.url,this.dataset.title)">📄 ${label}</button><button class="pdf-del-btn" title="${delTitle}" onclick="removeOnePdf(window.__detailRows[${idx}],${di})">✕</button></span>`;
         }).join('')
       :`<span class="pdf-none">—</span>`;
     const uploadIconBtn=`<button class="upload-icon-btn" title="${LANG==='zh'?'上传/更换 PDF':LANG==='ko'?'PDF 업로드/교체':'Upload/replace PDF'}" onclick="openUploadModal(window.__detailRows[${idx}])">📎</button>`;
