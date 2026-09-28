@@ -47,6 +47,11 @@
 .drive-status-btn .dot{width:7px;height:7px;border-radius:999px;background:#d1d5db;box-shadow:none}
 .drive-status-btn.connected .dot{background:#16a34a}
 .drive-status-btn:hover{background:var(--surface2);color:var(--ink)}
+.sync-pending-wrap{align-items:stretch;height:38px}
+.sync-pending-btn{border:1px solid #fdba74;border-radius:999px 0 0 999px;background:#fff7ed;color:#9a3412;font-weight:800;font-size:12px;padding:0 14px;cursor:pointer;white-space:nowrap}
+.sync-pending-btn:hover{background:#ffedd5}
+.sync-pending-x{border:1px solid #fdba74;border-left:none;border-radius:0 999px 999px 0;background:#fff7ed;color:#9a3412;font-size:11px;padding:0 11px;cursor:pointer}
+.sync-pending-x:hover{background:#fee2e2;color:#991b1b}
 .upload-cell{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .pdf-item{display:inline-flex;align-items:center;gap:2px}
 .pdf-item .pdf-btn{border-radius:8px 0 0 8px}
@@ -77,7 +82,7 @@
 </style>
 </head>
 <body>
-<header class="header"><div><div class="eyebrow"><span class="dot"></span><span data-i18n="eyebrow"></span></div><h1 data-i18n="title"></h1><p data-i18n="subtitle"></p></div><div class="header-right"><div class="lang-toggle" role="group" aria-label="Language switch"><button id="langZh" class="active" type="button">中文简体</button><button id="langKo" type="button">한국어</button><button id="langEn" type="button">English</button></div><button class="drive-status-btn" id="driveStatusBtn" type="button" onclick="handleDriveStatusClick()"><span class="dot" id="driveStatusDot"></span><span id="driveStatusLabel">连接 Google Drive</span></button><div class="hero-kpi"><div class="label" data-i18n="heroTotalLabel"></div><div class="value" id="heroTotal">—</div></div><div class="hero-kpi"><div class="label" data-i18n="heroUniqueLabel"></div><div class="value" id="heroUnique">—</div></div><div class="hero-kpi"><div class="label" data-i18n="heroActiveLabel"></div><div class="value" id="heroActive">—</div></div></div></header>
+<header class="header"><div><div class="eyebrow"><span class="dot"></span><span data-i18n="eyebrow"></span></div><h1 data-i18n="title"></h1><p data-i18n="subtitle"></p></div><div class="header-right"><div class="lang-toggle" role="group" aria-label="Language switch"><button id="langZh" class="active" type="button">中文简体</button><button id="langKo" type="button">한국어</button><button id="langEn" type="button">English</button></div><button class="drive-status-btn" id="editModeBtn" type="button" style="display:none" onclick="toggleEditMode()"><span class="dot"></span><span id="editModeLabel">🔒 编辑模式</span></button><button class="drive-status-btn" id="driveStatusBtn" type="button" style="display:none" onclick="handleDriveStatusClick()"><span class="dot" id="driveStatusDot"></span><span id="driveStatusLabel">连接 Google Drive</span></button><span class="sync-pending-wrap" id="sharedStatusWrap" style="display:none"><button class="sync-pending-btn" id="sharedStatusBtn" type="button" style="border-radius:999px" onclick="retryShared()"></button></span><div class="hero-kpi"><div class="label" data-i18n="heroTotalLabel"></div><div class="value" id="heroTotal">—</div></div><div class="hero-kpi"><div class="label" data-i18n="heroUniqueLabel"></div><div class="value" id="heroUnique">—</div></div><div class="hero-kpi"><div class="label" data-i18n="heroActiveLabel"></div><div class="value" id="heroActive">—</div></div></div></header>
 <nav class="nav"><button class="active" data-page="overview" data-i18n="navOverview"></button><button data-page="region" data-i18n="navRegion"></button><button data-page="timeline" data-i18n="navTimeline"></button><button data-page="data" data-i18n="navData"></button><button data-page="quality" data-i18n="navQuality"></button></nav>
 <main class="main"><section class="filter-panel"><div class="filters"><div class="fg"><label data-i18n="filterSearch"></label><input id="searchInput" data-i18n-placeholder="searchPlaceholder" /></div><div class="fg"><label data-i18n="filterRegion"></label><select id="regionFilter"></select></div><div class="fg"><label data-i18n="filterProvince"></label><select id="provinceFilter"></select></div><div class="fg"><label data-i18n="filterType"></label><select id="typeFilter"></select></div><div class="fg"><label data-i18n="filterStatus"></label><select id="statusFilter"></select></div><div class="fg"><label data-i18n="filterYear"></label><select id="yearFilter"></select></div><button class="btn secondary" id="clearBtn" data-i18n="clearBtn"></button></div></section>
 <section id="overview" class="page active"><div class="note" id="loadStatusNote" style="display:none"></div><div class="grid-kpi"><div class="card kpi"><div class="k-label" data-i18n="kTotal"></div><div class="k-value" id="kTotal">—</div><div class="k-sub" data-i18n="kTotalSub"></div></div><div class="card kpi"><div class="k-label" data-i18n="kUnique"></div><div class="k-value" id="kUnique">—</div><div class="k-sub" data-i18n="kUniqueSub"></div></div><div class="card kpi"><div class="k-label" data-i18n="kRegions"></div><div class="k-value" id="kRegions">—</div><div class="k-sub" data-i18n="kRegionsSub"></div></div><div class="card kpi"><div class="k-label" data-i18n="kProvinces"></div><div class="k-value" id="kProvinces">—</div><div class="k-sub" data-i18n="kProvincesSub"></div></div><div class="card kpi"><div class="k-label" data-i18n="kActive"></div><div class="k-value" id="kActive">—</div><div class="k-sub" data-i18n="kActiveSub"></div></div><div class="card kpi"><div class="k-label" data-i18n="kExpiring"></div><div class="k-value" id="kExpiring">—</div><div class="k-sub" data-i18n="kExpiringSub"></div></div></div><div class="chart-grid"><div class="card"><div class="section-title"><h2 data-i18n="chartRegionTitle"></h2><span class="sub" data-i18n="chartRegionSub"></span></div><div class="chart-box"><canvas id="regionChart"></canvas></div></div><div class="card"><div class="section-title"><h2 data-i18n="chartStatusTitle"></h2><span class="sub" data-i18n="chartStatusSub"></span></div><div class="chart-box"><canvas id="statusChart"></canvas></div></div></div><div class="chart-grid"><div class="card"><div class="section-title"><h2 data-i18n="chartProvinceTitle"></h2><span class="sub" data-i18n="chartProvinceSub"></span></div><div class="chart-box"><canvas id="provinceChart"></canvas></div></div><div class="card"><div class="section-title"><h2 data-i18n="chartTypeTitle"></h2><span class="sub" data-i18n="chartTypeSub"></span></div><div class="chart-box"><canvas id="typeChart"></canvas></div></div></div></section>
@@ -121,7 +126,6 @@
       <label class="chk"><input type="checkbox" id="uploadPublicChk" checked /> <span id="uploadPublicLabel">上传后设为「知道连结的人皆可查看」</span></label>
     </div>
     <div id="uploadStatus"></div>
-    <div style="text-align:right"><button type="button" class="local-clear" style="color:var(--muted);text-decoration:underline" onclick="resetGithubToken()" id="resetGithubLabel">重新设定 GitHub 同步权限</button></div>
     <div class="up-actions">
       <button class="btn secondary" type="button" onclick="closeUploadModal()" id="uploadCancelBtn">取消</button>
       <button class="btn" type="button" onclick="submitUpload()" id="uploadSubmitBtn">上传新档案</button>
@@ -210,7 +214,7 @@ async function fetchExcelArrayBuffer(){
 }
 async function loadExcelData(){
   if(typeof XLSX==='undefined') throw new Error('SheetJS XLSX library failed to load.');
-  const [{buffer,path,lastModified}]=await Promise.all([fetchExcelArrayBuffer(), fetchSharedOverrides().then(o=>{SHARED_OVERRIDES=o})]);
+  const [{buffer,path,lastModified}]=await Promise.all([fetchExcelArrayBuffer(), fetchSharedOverrides()]);
   const workbook=XLSX.read(buffer,{type:'array',cellDates:true});
   const sourceDate=lastModified?new Date(lastModified):((workbook.Props&&workbook.Props.Modified)?new Date(workbook.Props.Modified):new Date());
   setDataDate(sourceDate);
@@ -218,7 +222,7 @@ async function loadExcelData(){
   const worksheet=workbook.Sheets[sheetName];
   const rows=XLSX.utils.sheet_to_json(worksheet,{defval:'',raw:false});
   RAW=rows.map(excelRowToRecord).filter(r=>r.chineseName||r.koreanName);
-  applyLocalPdfOverrides(RAW);
+  applySharedOverrides(RAW);
   BASE_SUMMARY=summarizeRows(RAW);
   updateDynamicSubtitle();
   console.info('China MOU Dashboard loaded Excel:', path, sheetName, RAW.length);
@@ -343,11 +347,20 @@ function showToast(msg,type){
   setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),320)},4200);
 }
 
+/* ── 共享资料：唯一的真相来源 = Google Apps Script + Google 试算表 ──────────────
+   所有人读同一份、写入即时生效；这台电脑上不再保存任何「暂存版本」，所以不会有不同步。
+   部署 Code.gs 之后，把「网页应用程式网址」（/exec 结尾）贴在下面 SHARED_API_URL。 */
+const SHARED_API_URL = 'https://script.google.com/macros/s/AKfycbwqayjP9UfQGQeqABjUIQOeUY-pdc2KROHMUHTr-2x7nXKI_Quyluzj8BUjMgG7UxPfRQ/exec';
+const LS_EDIT_KEY = 'mouEditKey_v2';
+const POLL_MS = 30000;
+let SHARED_OVERRIDES = {}, sharedVersion = -1, sharedOk = false, EDIT_MODE = false;
+
+function sharedConfigured(){return SHARED_API_URL && !SHARED_API_URL.startsWith('PASTE_')}
+function getEditKey(){return localStorage.getItem(LS_EDIT_KEY)||''}
 function rowOverrideKey(r){
   return r.overrideKey||[r.chineseName||'',r.koreanName||'',r.signedRaw||'',r.endRaw||''].join('||');
 }
-// 有些记录的中文名/韩文名/签约年/到期年完全相同（例如年份都是空白），
-// 第一笔沿用原本的 key，后面重复的加上 #2、#3，避免一笔删除/上传影响到另一笔
+// 有些记录的中文名/韩文名/签约年/到期年完全相同，第一笔沿用原 key，后面重复的加 #2、#3
 function assignRowKeys(rows){
   const seen={};
   rows.forEach(r=>{
@@ -356,110 +369,93 @@ function assignRowKeys(rows){
     r.overrideKey=seen[base]===1?base:base+'||#'+seen[base];
   });
 }
-function loadOverrides(){
-  try{return JSON.parse(localStorage.getItem(LS_OVERRIDES_KEY)||'{}')}catch(e){return {}}
-}
-// value 是一个数组 [{url,name}, ...]；每次都是整批取代（不是累加），
-// 所以同一列重新选择/上传一次，就会用最新那批取代旧的连结
-function saveOverrideList(key,list){
-  const m=loadOverrides();m[key]=list;localStorage.setItem(LS_OVERRIDES_KEY,JSON.stringify(m));
-}
-function clearOverride(key){
-  const m=loadOverrides();delete m[key];localStorage.setItem(LS_OVERRIDES_KEY,JSON.stringify(m));
-}
 function normalizeOverrideEntry(v){
-  // 兼容旧版：旧版存的是单一字符串网址，新版存的是 [{url,name}] 数组
   if(!v)return [];
   if(typeof v==='string')return [{url:v,name:''}];
   if(Array.isArray(v))return v.filter(x=>x&&x.url);
   return [];
 }
-function applyLocalPdfOverrides(rows){
+// 只要共享资料里有这一笔（即使是空清单 = 刻意删光），就以它为准；没有才读 Excel
+function applySharedOverrides(rows){
   assignRowKeys(rows);
-  const local=loadOverrides();
-  const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+  const has=k=>Object.prototype.hasOwnProperty.call(SHARED_OVERRIDES,k);
   rows.forEach(r=>{
-    const k=rowOverrideKey(r);
-    const inLocal=has(local,k), inShared=has(SHARED_OVERRIDES,k);
-    // 本机（这台浏览器）尚未同步成功的暂存优先，其次用大家共享的 pdf-overrides.json，最后才是 Excel 原本的连结
-    const list=normalizeOverrideEntry(inLocal?local[k]:SHARED_OVERRIDES[k]);
-    r.localPdfList=list;
-    r.localPdf=list.length>0 && !inShared;
-    // 只要有设定过（包含「刻意删光」= 空清单），就以设定为准，不再退回去读 Excel
-    r.pdfList=(inLocal||inShared)?list:(r.documentUrls&&r.documentUrls.length?r.documentUrls.map(u=>({url:u,name:''})):[]);
+    const k=rowOverrideKey(r), custom=has(k);
+    r.hasOverride=custom;
+    r.pdfList=custom?normalizeOverrideEntry(SHARED_OVERRIDES[k]):(r.documentUrls&&r.documentUrls.length?r.documentUrls.map(u=>({url:u,name:''})):[]);
   });
 }
-/* ── GitHub 同步（让所有访客都看得到上传结果）───────────── */
-const GITHUB_OWNER='joeyaj', GITHUB_REPO='China-MOU-Master--Woosong-University';
-const GITHUB_OVERRIDES_PATH='pdf-overrides.json';
-const LS_GITHUB_TOKEN_KEY='mouGithubToken_v1';
-let SHARED_OVERRIDES={};
-let cachedDefaultBranch=null;
-function utf8ToBase64(str){return btoa(unescape(encodeURIComponent(str)))}
-function base64ToUtf8(b64){return decodeURIComponent(escape(atob(String(b64).replace(/\n/g,''))))}
-function getGithubToken(promptIfMissing){
-  let t=localStorage.getItem(LS_GITHUB_TOKEN_KEY);
-  if(!t && promptIfMissing){
-    t=prompt(LANG==='zh'?'请贴上你的 GitHub Personal Access Token（只需要设定一次，只会存在这台电脑的浏览器里，用来把 PDF 连结同步给所有访客）：':LANG==='ko'?'GitHub Personal Access Token을 붙여넣으세요 (이 브라우저에만 저장됩니다):':'Paste your GitHub Personal Access Token (stored only in this browser):');
-    if(t){t=t.trim();if(t)localStorage.setItem(LS_GITHUB_TOKEN_KEY,t)}
-  }
-  return t?t.trim():null;
-}
-function resetGithubToken(){
-  localStorage.removeItem(LS_GITHUB_TOKEN_KEY);
-  showToast(LANG==='zh'?'已清除 GitHub 权限，下次同步时会重新询问。':LANG==='ko'?'GitHub 토큰이 삭제되었습니다.':'GitHub token cleared.','ok');
-}
-async function githubApi(path,options={}){
-  const token=getGithubToken(true);
-  if(!token)throw new Error(LANG==='zh'?'需要 GitHub 权限才能同步给所有人':LANG==='ko'?'GitHub 권한이 필요합니다':'GitHub token is required to sync');
-  const headers=Object.assign({Accept:'application/vnd.github+json'},options.headers||{});
-  headers.Authorization=`Bearer ${token}`;
-  const res=await fetch(`https://api.github.com${path}`,Object.assign({},options,{headers}));
-  if(res.status===401){resetGithubToken();throw new Error(LANG==='zh'?'GitHub 权限无效或已过期，请重新设定后再试一次':LANG==='ko'?'GitHub 토큰이 유효하지 않습니다':'GitHub token is invalid or expired')}
-  return res;
-}
-async function getDefaultBranch(){
-  if(cachedDefaultBranch)return cachedDefaultBranch;
-  try{
-    const res=await githubApi(`/repos/${GITHUB_OWNER}/${GITHUB_REPO}`);
-    const json=await res.json();
-    cachedDefaultBranch=json.default_branch||'main';
-  }catch(e){cachedDefaultBranch='main'}
-  return cachedDefaultBranch;
-}
 async function fetchSharedOverrides(){
+  if(!sharedConfigured()){sharedOk=false;return false}
   try{
-    const url=GITHUB_OVERRIDES_PATH+'?v='+Date.now();
-    const res=await fetch(url,{cache:'no-store'});
-    if(!res.ok)return {};
-    return await res.json();
-  }catch(e){return {}}
+    const res=await fetch(SHARED_API_URL+(SHARED_API_URL.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-store'});
+    const data=await res.json();
+    if(!data||!data.ok)throw new Error((data&&data.error)||'bad response');
+    if(data.version>=sharedVersion){SHARED_OVERRIDES=data.overrides||{};sharedVersion=data.version}
+    sharedOk=true;return true;
+  }catch(e){console.warn('shared overrides load failed',e);sharedOk=false;return false}
 }
-async function syncOverrideToGithub(key,list){
-  const branch=await getDefaultBranch();
-  let sha=null, current={};
-  const getRes=await githubApi(`/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_OVERRIDES_PATH}?ref=${branch}`);
-  if(getRes.status===200){
-    const getJson=await getRes.json();
-    sha=getJson.sha;
-    try{current=JSON.parse(base64ToUtf8(getJson.content))}catch(e){current={}}
-  }else if(getRes.status!==404){
-    throw new Error('GitHub API '+getRes.status);
-  }
-  if(list===null){delete current[key]}else{current[key]=list}
-  const body={
-    message:`Update PDF link (${(key.split('||')[0])||'MOU'})`,
-    content:utf8ToBase64(JSON.stringify(current,null,2)),
-    branch
-  };
-  if(sha)body.sha=sha;
-  const putRes=await githubApi(`/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_OVERRIDES_PATH}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!putRes.ok){
-    const errJson=await putRes.json().catch(()=>({}));
-    throw new Error(errJson.message||('GitHub API '+putRes.status));
-  }
-  SHARED_OVERRIDES=current;
+// 不设 Content-Type（浏览器会用 text/plain），这样不会触发 CORS 预检，Apps Script 才收得到
+async function sharedPost(payload){
+  const res=await fetch(SHARED_API_URL,{method:'POST',body:JSON.stringify(payload),redirect:'follow'});
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  return await res.json();
 }
+async function writeShared(payload){
+  if(!sharedConfigured())throw new Error(tr('尚未设定共享资料网址（SHARED_API_URL）','공유 데이터 URL이 설정되지 않았습니다','SHARED_API_URL is not configured'));
+  const editKey=getEditKey();
+  if(!editKey)throw new Error(tr('尚未进入编辑模式','편집 모드가 아닙니다','Not in edit mode'));
+  const data=await sharedPost(Object.assign({editKey},payload));
+  if(!data.ok){
+    if(data.error==='unauthorized'){localStorage.removeItem(LS_EDIT_KEY);setEditMode(false);
+      throw new Error(tr('编辑密码不正确，请重新进入编辑模式','비밀번호가 올바르지 않습니다','Wrong edit password'))}
+    throw new Error(data.error||'unknown error');
+  }
+  if(data.version>=sharedVersion){SHARED_OVERRIDES=data.overrides||{};sharedVersion=data.version}   // 防止较晚到达的旧回应覆盖新资料
+  sharedOk=true;
+  applySharedOverrides(RAW);
+  return data;
+}
+const saveSharedOverride=(key,list)=>writeShared({action:'set',key,list});
+const resetSharedOverride=key=>writeShared({action:'reset',key});
+
+/* 编辑模式：只有输入编辑密码的人才看得到上传/删除按钮，其他人纯浏览 */
+function updateEditModeUI(){
+  const btn=document.getElementById('editModeBtn'), lab=document.getElementById('editModeLabel'), drv=document.getElementById('driveStatusBtn');
+  if(btn){btn.classList.toggle('connected',EDIT_MODE);btn.style.display=sharedConfigured()?'':'none'}
+  if(lab)lab.textContent=EDIT_MODE?tr('编辑中 · 点此退出','편집 중 · 종료','Editing · exit'):tr('🔒 编辑模式','🔒 편집 모드','🔒 Edit mode');
+  if(drv)drv.style.display=EDIT_MODE?'':'none';
+}
+function setEditMode(on){EDIT_MODE=!!on;updateEditModeUI();if(RAW.length)updateAll()}
+async function toggleEditMode(){
+  if(EDIT_MODE){localStorage.removeItem(LS_EDIT_KEY);setEditMode(false);return}
+  const k=prompt(tr('请输入编辑密码：','편집 비밀번호를 입력하세요:','Enter the edit password:'));
+  if(!k||!k.trim())return;
+  try{
+    const data=await sharedPost({action:'verify',editKey:k.trim()});
+    if(!data.ok)throw new Error('unauthorized');
+    localStorage.setItem(LS_EDIT_KEY,k.trim());setEditMode(true);
+    showToast(tr('已进入编辑模式','편집 모드를 켰습니다','Edit mode on'),'ok');
+  }catch(e){showToast(tr('密码不正确，或无法连线到共享资料','비밀번호가 틀렸거나 연결할 수 없습니다','Wrong password or cannot reach the shared data'),'error')}
+}
+/* 读取失败时要让人看得到：不是悄悄显示旧资料 */
+function updateSharedStatusUI(){
+  const wrap=document.getElementById('sharedStatusWrap'), btn=document.getElementById('sharedStatusBtn');
+  if(!wrap||!btn)return;
+  const show=sharedConfigured()&&!sharedOk;
+  wrap.style.display=show?'inline-flex':'none';
+  if(show)btn.textContent=tr('⚠ 共享 PDF 清单无法连线（目前显示 Excel 内的连结）· 点此重试','⚠ 공유 PDF 목록 연결 실패 (Excel 링크 표시 중) · 재시도','⚠ Shared PDF list unavailable (showing Excel links) · Retry');
+}
+async function pollShared(){
+  if(!sharedConfigured()||document.hidden)return;
+  const before=sharedVersion, wasOk=sharedOk;
+  await fetchSharedOverrides();
+  if(sharedVersion!==before||sharedOk!==wasOk){applySharedOverrides(RAW);if(RAW.length)updateAll()}
+  updateSharedStatusUI();
+}
+function retryShared(){pollShared()}
+setInterval(pollShared,POLL_MS);                                     // 页面开着也会自动更新，不用手动重新整理
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollShared()});
 function driveConfigured(){return GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith('PASTE_')}
 function updateDriveStatusUI(){
   const dot=document.getElementById('driveStatusDot'), label=document.getElementById('driveStatusLabel'), btn=document.getElementById('driveStatusBtn');
@@ -470,6 +466,7 @@ function updateDriveStatusUI(){
   if(!driveConfigured()){label.textContent=zh?'Drive 上传未设定':ko?'Drive 업로드 미설정':'Drive upload not configured'}
   else if(connected){label.textContent=zh?'Google Drive 已连接':ko?'Google Drive 연결됨':'Google Drive Connected'}
   else{label.textContent=zh?'连接 Google Drive':ko?'Google Drive 연결':'Connect Google Drive'}
+  updateEditModeUI();updateSharedStatusUI();
 }
 function handleDriveStatusClick(){
   if(!driveConfigured()){
@@ -596,17 +593,13 @@ async function openDrivePicker(){
   }
 }
 async function finalizeOverride(key,list,successMsgBase){
-  saveOverrideList(key,list);
-  applyLocalPdfOverrides(RAW);
-  updateAll();
-  showToast(LANG==='zh'?`${successMsgBase}正在同步到 GitHub…`:LANG==='ko'?`${successMsgBase}GitHub 동기화 중…`:`${successMsgBase}Syncing to GitHub…`);
+  showToast(tr('正在保存…','저장 중…','Saving…'));
   try{
-    await syncOverrideToGithub(key,list);
-    applyLocalPdfOverrides(RAW);
+    await saveSharedOverride(key,list);
     updateAll();
-    showToast(LANG==='zh'?'已同步！大约 1 分钟后所有访客都能看到（GitHub Pages 需要一点时间重新部署）。':LANG==='ko'?'동기화 완료! 약 1분 후 모두에게 반영됩니다.':'Synced! It may take ~1 minute for GitHub Pages to redeploy for other visitors.','ok');
+    showToast(successMsgBase+tr('已保存，所有人马上（最多 30 秒内）就能看到。','저장되었습니다. 모두에게 곧(최대 30초) 반영됩니다.','Saved. Everyone will see it within 30 seconds.'),'ok');
   }catch(err){
-    showToast((LANG==='zh'?'同步到 GitHub 失败：':LANG==='ko'?'GitHub 동기화 실패: ':'GitHub sync failed: ')+err.message+(LANG==='zh'?'（这台电脑上仍看得到，但其他人暂时还看不到）':''),'error');
+    showToast(tr('保存失败：','저장 실패: ','Save failed: ')+err.message+tr('（没有任何变更被保存）',' (변경 사항 없음)',' (nothing was changed)'),'error');
   }
 }
 function pickerCallback(data){
@@ -637,7 +630,6 @@ function openUploadModal(r){
   document.getElementById('uploadPublicLabel').textContent=zh?'上传后设为「知道连结的人皆可查看」':ko?'업로드 후 "링크가 있는 모든 사용자"로 공유':'Set to "anyone with the link" after upload';
   document.getElementById('uploadCancelBtn').textContent=zh?'取消':ko?'취소':'Cancel';
   document.getElementById('uploadSubmitBtn').textContent=zh?'上传新档案':ko?'새 파일 업로드':'Upload new file';
-  document.getElementById('resetGithubLabel').textContent=zh?'重新设定 GitHub 同步权限':ko?'GitHub 동기화 권한 재설정':'Reset GitHub sync token';
   if(!driveConfigured()){
     statusEl.textContent=LANG==='zh'?'尚未设定 Google Client ID，请先完成设定（见程式码注解）。':LANG==='ko'?'Google Client ID가 설정되지 않았습니다.':'Google Client ID is not configured yet.';
     statusEl.className='error';
@@ -650,38 +642,29 @@ function closeUploadModal(){
   document.body.style.overflow='';
   uploadCtx=null;
 }
-function removeLocalPdf(r){
-  const ok=confirm(LANG==='zh'?'确定要清除这笔连结吗？（不会删除 Drive 上的档案，只是让 Dashboard 改回读取 Excel 里的连结，并同步给所有访客）':LANG==='ko'?'이 링크를 삭제할까요?':'Remove this PDF link?');
-  if(!ok)return;
-  const key=rowOverrideKey(r);
-  clearOverride(key);
-  applyLocalPdfOverrides(RAW);
-  updateAll();
-  syncOverrideToGithub(key,null).then(()=>{
-    applyLocalPdfOverrides(RAW);updateAll();
-    showToast(LANG==='zh'?'已同步清除，大约 1 分钟后所有访客都会看到更新。':LANG==='ko'?'동기화 완료.':'Synced.','ok');
-  }).catch(err=>{
-    showToast((LANG==='zh'?'同步到 GitHub 失败：':'GitHub sync failed: ')+err.message,'error');
-  });
+async function restoreExcelPdf(r){
+  if(!confirm(tr('确定要还原吗？这笔记录会改回显示 Excel 里原本的连结（不会删除 Drive 上的档案）。','되돌릴까요? Excel의 원래 링크로 표시됩니다.','Restore the Excel default for this record?')))return;
+  try{
+    await resetSharedOverride(rowOverrideKey(r));
+    updateAll();
+    showToast(tr('已还原，所有人马上（最多 30 秒内）就能看到。','복원되었습니다.','Restored. Everyone will see it within 30 seconds.'),'ok');
+  }catch(err){
+    showToast(tr('还原失败：','복원 실패: ','Restore failed: ')+err.message+tr('（没有任何变更被保存）',' (변경 사항 없음)',' (nothing was changed)'),'error');
+  }
 }
-function removeOnePdf(r,index){
-  const list=r.pdfList||[];
-  const target=list[index];
+async function removeOnePdf(r,index){
+  const list=r.pdfList||[], target=list[index];
   if(!target)return;
-  const ok=confirm(LANG==='zh'?`确定要删除这一份连结吗？（不会删除 Drive 上的档案本身，只是把它从这笔记录移除，并同步给所有访客）\n\n${target.name||target.url}`:LANG==='ko'?'이 링크를 삭제할까요?':'Delete this PDF link?');
-  if(!ok)return;
-  const key=rowOverrideKey(r);
+  if(!confirm(tr(`确定要删除这一份连结吗？（不会删除 Drive 上的档案本身，只是从这笔记录移除）\n\n${target.name||target.url}`,'이 링크를 삭제할까요?','Delete this PDF link?')))return;
   const newList=list.filter((_,i)=>i!==index);   // 可能是空清单：代表这笔刻意不显示任何 PDF
-  saveOverrideList(key,newList);
-  applyLocalPdfOverrides(RAW);
-  updateAll();
-  showToast(LANG==='zh'?'正在同步到 GitHub…':LANG==='ko'?'GitHub 동기화 중…':'Syncing to GitHub…');
-  syncOverrideToGithub(key,newList).then(()=>{
-    applyLocalPdfOverrides(RAW);updateAll();
-    showToast(LANG==='zh'?'已同步！大约 1 分钟后所有访客都能看到。':LANG==='ko'?'동기화 완료!':'Synced!','ok');
-  }).catch(err=>{
-    showToast((LANG==='zh'?'同步到 GitHub 失败：':'GitHub sync failed: ')+err.message,'error');
-  });
+  try{
+    showToast(tr('正在保存…','저장 중…','Saving…'));
+    await saveSharedOverride(rowOverrideKey(r),newList);
+    updateAll();
+    showToast(tr('已删除，所有人马上（最多 30 秒内）就能看到。','삭제되었습니다.','Deleted. Everyone will see it within 30 seconds.'),'ok');
+  }catch(err){
+    showToast(tr('删除失败：','삭제 실패: ','Delete failed: ')+err.message+tr('（没有任何变更被保存）',' (변경 사항 없음)',' (nothing was changed)'),'error');
+  }
 }
 async function submitUpload(){
   const r=uploadCtx;
@@ -725,18 +708,12 @@ async function submitUpload(){
       }
       results.push({url:`https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`,name:displayName});
     }
-    saveOverrideList(rowOverrideKey(r),results);
-    applyLocalPdfOverrides(RAW);
+    statusEl.textContent=tr('上传成功！正在保存连结…','업로드 완료! 링크 저장 중…','Uploaded! Saving links…');
+    await saveSharedOverride(rowOverrideKey(r),results);
     updateAll();
-    statusEl.textContent=LANG==='zh'?`上传成功！已更新此笔记录的 ${results.length} 个 PDF 连结，正在同步给所有访客…`:LANG==='ko'?`업로드 완료! ${results.length}개 파일, GitHub 동기화 중…`:`Upload complete! ${results.length} link(s), syncing to GitHub…`;
+    statusEl.textContent=tr(`已保存 ${results.length} 个连结，所有人马上（最多 30 秒内）就能看到。`,`${results.length}개 링크 저장 완료. 모두에게 곧 반영됩니다.`,`Saved ${results.length} link(s). Everyone will see it within 30 seconds.`);
     statusEl.className='ok';
     setTimeout(closeUploadModal,1400);
-    syncOverrideToGithub(rowOverrideKey(r),results).then(()=>{
-      applyLocalPdfOverrides(RAW);updateAll();
-      showToast(LANG==='zh'?'已同步！大约 1 分钟后所有访客都能看到（GitHub Pages 需要一点时间重新部署）。':LANG==='ko'?'동기화 완료! 약 1분 후 모두에게 반영됩니다.':'Synced! It may take ~1 minute for GitHub Pages to redeploy for other visitors.','ok');
-    }).catch(err=>{
-      showToast((LANG==='zh'?'同步到 GitHub 失败：':LANG==='ko'?'GitHub 동기화 실패: ':'GitHub sync failed: ')+err.message+(LANG==='zh'?'（这台电脑上仍看得到，但其他人暂时还看不到）':''),'error');
-    });
   }catch(err){
     statusEl.textContent=(LANG==='zh'?'发生错误：':LANG==='ko'?'오류: ':'Error: ')+err.message;
     statusEl.className='error';
@@ -764,13 +741,11 @@ function drawDetails(rows){
           const label=list.length>1?`${viewLabel} ${di+1}`:viewLabel;
           const titleAttr=doc.name?safe(doc.name):safe(displayName(r));
           const delTitle=LANG==='zh'?'删除这份连结':LANG==='ko'?'이 링크 삭제':'Delete this link';
-          return `<span class="pdf-item"><button class="pdf-btn" data-url="${safe(doc.url)}" data-title="${titleAttr}" title="${titleAttr}" onclick="openPdf(this.dataset.url,this.dataset.title)">📄 ${label}</button><button class="pdf-del-btn" title="${delTitle}" onclick="removeOnePdf(window.__detailRows[${idx}],${di})">✕</button></span>`;
+          return `<span class="pdf-item"><button class="pdf-btn" data-url="${safe(doc.url)}" data-title="${titleAttr}" title="${titleAttr}" onclick="openPdf(this.dataset.url,this.dataset.title)">📄 ${label}</button>${EDIT_MODE?`<button class="pdf-del-btn" title="${delTitle}" onclick="removeOnePdf(window.__detailRows[${idx}],${di})">✕</button>`:''}</span>`;
         }).join('')
       :`<span class="pdf-none">—</span>`;
-    const uploadIconBtn=`<button class="upload-icon-btn" title="${LANG==='zh'?'上传/更换 PDF':LANG==='ko'?'PDF 업로드/교체':'Upload/replace PDF'}" onclick="openUploadModal(window.__detailRows[${idx}])">📎</button>`;
-    const localTag=r.localPdf
-      ?`<span class="local-tag">${LANG==='zh'?'本机上传':LANG==='ko'?'로컬 업로드':'Local upload'}</span><button class="local-clear" onclick="removeLocalPdf(window.__detailRows[${idx}])">${LANG==='zh'?'清除':LANG==='ko'?'지우기':'Clear'}</button>`
-      :'';
+    const uploadIconBtn=EDIT_MODE?`<button class="upload-icon-btn" title="${tr('上传/更换 PDF','PDF 업로드/교체','Upload/replace PDF')}" onclick="openUploadModal(window.__detailRows[${idx}])">📎</button>`:'';
+    const localTag=(EDIT_MODE&&r.hasOverride)?`<span class="local-tag">${tr('已自订','수정됨','Edited')}</span><button class="local-clear" onclick="restoreExcelPdf(window.__detailRows[${idx}])">${tr('还原为 Excel','Excel로 복원','Restore Excel')}</button>`:'';
     const pdfCell=`<div class="upload-cell">${pdfBtns}${uploadIconBtn}${localTag}</div>`;
     return`<tr><td>${safe(r.no)}</td><td><strong>${safe(displayName(r))}</strong><br><span style="color:#7b7468">${safe(subName(r))}</span></td><td><span class="pill region">${safe(val(r.region))}</span><br>${safe(val(r.province))}</td><td>${safe(r.campus)}</td><td><span class="pill type">${safe(r.programModel)}</span></td><td>${safe(val(r.counterpartyType))}</td><td>${safe(r.signedRaw)}<br><span style="color:#7b7468">${safe(r.endRaw)}</span></td><td><span class="${statusClass(r.status)}">${safe(val(r.status))}</span></td><td>${safe(r.notes)}</td><td style="white-space:nowrap">${pdfCell}</td></tr>`;
   });
@@ -841,12 +816,16 @@ function updateAll(){currentRows=filteredRows();setKpis(currentRows);drawOvervie
 function downloadCSV(){const headers=LANG==='ko'?['No','중문명','한국어명','성/지역','중국 권역','Campus','Program Model','Direction','Signed Year','End Year','Status','Counterparty Type','Notes']:LANG==='en'?['No','Chinese Name','Korean Name','Province/Area','China Region','Campus','Program Model','Direction','Signed Year','End Year','Status','Counterparty Type','Notes']:['No','中文名称','韩文名称','省份/地区','中国区域','Campus','Program Model','Direction','Signed Year','End Year','Status','Counterparty Type','Notes'];const rows=currentRows.map(r=>[r.no,r.chineseName,r.koreanName,LANG==='zh'?r.province:val(r.province),LANG==='zh'?r.region:val(r.region),r.campus,r.programModel,LANG==='zh'?r.direction:val(r.direction),r.signedRaw,r.endRaw,LANG==='zh'?r.status:val(r.status),LANG==='zh'?r.counterpartyType:val(r.counterpartyType),r.notes]);const csv=[headers,...rows].map(row=>row.map(v=>`"${String(v??'').replaceAll('"','""')}"`).join(',')).join('\n');const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=LANG==='ko'?'china_mou_filtered_ko.csv':LANG==='en'?'china_mou_filtered_en.csv':'china_mou_filtered_zh.csv';a.click();URL.revokeObjectURL(url)}
 document.querySelectorAll('.nav button').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById(btn.dataset.page).classList.add('active');setTimeout(()=>Object.values(charts).forEach(c=>c.resize()),60)})});
 async function bootstrapDashboard(){
+  // 清掉旧版留在这台浏览器里的暂存资料与 GitHub Token（新版不再使用）
+  ['mouPdfOverrides_v1','mouGithubToken_v1'].forEach(k=>localStorage.removeItem(k));
+  EDIT_MODE=!!getEditKey();
   applyStaticText();
   updateDriveStatusUI();
   try{
     await loadExcelData();
     initFilters();
     updateAll();
+    updateSharedStatusUI();
   }catch(err){
     showLoadError(err);
   }
