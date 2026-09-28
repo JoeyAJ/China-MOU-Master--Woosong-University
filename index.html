@@ -344,7 +344,17 @@ function showToast(msg,type){
 }
 
 function rowOverrideKey(r){
-  return [r.chineseName||'',r.koreanName||'',r.signedRaw||'',r.endRaw||''].join('||');
+  return r.overrideKey||[r.chineseName||'',r.koreanName||'',r.signedRaw||'',r.endRaw||''].join('||');
+}
+// 有些记录的中文名/韩文名/签约年/到期年完全相同（例如年份都是空白），
+// 第一笔沿用原本的 key，后面重复的加上 #2、#3，避免一笔删除/上传影响到另一笔
+function assignRowKeys(rows){
+  const seen={};
+  rows.forEach(r=>{
+    const base=[r.chineseName||'',r.koreanName||'',r.signedRaw||'',r.endRaw||''].join('||');
+    seen[base]=(seen[base]||0)+1;
+    r.overrideKey=seen[base]===1?base:base+'||#'+seen[base];
+  });
 }
 function loadOverrides(){
   try{return JSON.parse(localStorage.getItem(LS_OVERRIDES_KEY)||'{}')}catch(e){return {}}
@@ -365,15 +375,18 @@ function normalizeOverrideEntry(v){
   return [];
 }
 function applyLocalPdfOverrides(rows){
+  assignRowKeys(rows);
   const local=loadOverrides();
+  const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
   rows.forEach(r=>{
     const k=rowOverrideKey(r);
+    const inLocal=has(local,k), inShared=has(SHARED_OVERRIDES,k);
     // 本机（这台浏览器）尚未同步成功的暂存优先，其次用大家共享的 pdf-overrides.json，最后才是 Excel 原本的连结
-    const raw=Object.prototype.hasOwnProperty.call(local,k)?local[k]:SHARED_OVERRIDES[k];
-    const list=normalizeOverrideEntry(raw);
+    const list=normalizeOverrideEntry(inLocal?local[k]:SHARED_OVERRIDES[k]);
     r.localPdfList=list;
-    r.localPdf=list.length>0 && !Object.prototype.hasOwnProperty.call(SHARED_OVERRIDES,k);
-    r.pdfList=list.length?list:(r.documentUrls&&r.documentUrls.length?r.documentUrls.map(u=>({url:u,name:''})):[]);
+    r.localPdf=list.length>0 && !inShared;
+    // 只要有设定过（包含「刻意删光」= 空清单），就以设定为准，不再退回去读 Excel
+    r.pdfList=(inLocal||inShared)?list:(r.documentUrls&&r.documentUrls.length?r.documentUrls.map(u=>({url:u,name:''})):[]);
   });
 }
 /* ── GitHub 同步（让所有访客都看得到上传结果）───────────── */
@@ -658,29 +671,17 @@ function removeOnePdf(r,index){
   const ok=confirm(LANG==='zh'?`确定要删除这一份连结吗？（不会删除 Drive 上的档案本身，只是把它从这笔记录移除，并同步给所有访客）\n\n${target.name||target.url}`:LANG==='ko'?'이 링크를 삭제할까요?':'Delete this PDF link?');
   if(!ok)return;
   const key=rowOverrideKey(r);
-  const newList=list.filter((_,i)=>i!==index);
-  if(newList.length){
-    saveOverrideList(key,newList);
-    applyLocalPdfOverrides(RAW);
-    updateAll();
-    showToast(LANG==='zh'?'正在同步到 GitHub…':LANG==='ko'?'GitHub 동기화 중…':'Syncing to GitHub…');
-    syncOverrideToGithub(key,newList).then(()=>{
-      applyLocalPdfOverrides(RAW);updateAll();
-      showToast(LANG==='zh'?'已同步！大约 1 分钟后所有访客都能看到。':LANG==='ko'?'동기화 완료!':'Synced!','ok');
-    }).catch(err=>{
-      showToast((LANG==='zh'?'同步到 GitHub 失败：':'GitHub sync failed: ')+err.message,'error');
-    });
-  }else{
-    clearOverride(key);
-    applyLocalPdfOverrides(RAW);
-    updateAll();
-    syncOverrideToGithub(key,null).then(()=>{
-      applyLocalPdfOverrides(RAW);updateAll();
-      showToast(LANG==='zh'?'已同步清除，大约 1 分钟后所有访客都会看到更新。':LANG==='ko'?'동기화 완료.':'Synced.','ok');
-    }).catch(err=>{
-      showToast((LANG==='zh'?'同步到 GitHub 失败：':'GitHub sync failed: ')+err.message,'error');
-    });
-  }
+  const newList=list.filter((_,i)=>i!==index);   // 可能是空清单：代表这笔刻意不显示任何 PDF
+  saveOverrideList(key,newList);
+  applyLocalPdfOverrides(RAW);
+  updateAll();
+  showToast(LANG==='zh'?'正在同步到 GitHub…':LANG==='ko'?'GitHub 동기화 중…':'Syncing to GitHub…');
+  syncOverrideToGithub(key,newList).then(()=>{
+    applyLocalPdfOverrides(RAW);updateAll();
+    showToast(LANG==='zh'?'已同步！大约 1 分钟后所有访客都能看到。':LANG==='ko'?'동기화 완료!':'Synced!','ok');
+  }).catch(err=>{
+    showToast((LANG==='zh'?'同步到 GitHub 失败：':'GitHub sync failed: ')+err.message,'error');
+  });
 }
 async function submitUpload(){
   const r=uploadCtx;
