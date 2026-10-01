@@ -46,6 +46,12 @@
 .drive-status-btn{height:38px;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.72);color:var(--muted);font-weight:800;font-size:12px;padding:0 14px;cursor:pointer;white-space:nowrap}
 .drive-status-btn .dot{width:7px;height:7px;border-radius:999px;background:#d1d5db;box-shadow:none}
 .drive-status-btn.connected .dot{background:#16a34a}
+.sync-pill{height:38px;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.72);color:var(--muted);font-weight:800;font-size:12px;padding:0 14px;cursor:pointer;white-space:nowrap}
+.sync-pill .dot{width:7px;height:7px;border-radius:999px;background:#d1d5db}
+.sync-pill[data-state=ok] .dot{background:#16a34a;animation:syncPulse 2.4s ease-in-out infinite}
+.sync-pill[data-state=warn]{color:#92400e;border-color:#fcd34d;background:#fffbeb}.sync-pill[data-state=warn] .dot{background:#f59e0b}
+.sync-pill[data-state=bad]{color:#991b1b;border-color:#fecaca;background:#fff1f2}.sync-pill[data-state=bad] .dot{background:#dc2626}
+@keyframes syncPulse{0%,100%{opacity:1}50%{opacity:.35}}@media (prefers-reduced-motion:reduce){.sync-pill .dot{animation:none!important}}
 .drive-status-btn:hover{background:var(--surface2);color:var(--ink)}
 .sync-pending-wrap{align-items:stretch;height:38px}
 .sync-pending-btn{border:1px solid #fdba74;border-radius:999px 0 0 999px;background:#fff7ed;color:#9a3412;font-weight:800;font-size:12px;padding:0 14px;cursor:pointer;white-space:nowrap}
@@ -82,7 +88,7 @@
 </style>
 </head>
 <body>
-<header class="header"><div><div class="eyebrow"><span class="dot"></span><span data-i18n="eyebrow"></span></div><h1 data-i18n="title"></h1><p data-i18n="subtitle"></p></div><div class="header-right"><div class="lang-toggle" role="group" aria-label="Language switch"><button id="langZh" class="active" type="button">中文简体</button><button id="langKo" type="button">한국어</button><button id="langEn" type="button">English</button></div><button class="drive-status-btn" id="editModeBtn" type="button" style="display:none" onclick="toggleEditMode()"><span class="dot"></span><span id="editModeLabel">🔒 编辑模式</span></button><button class="drive-status-btn" id="driveStatusBtn" type="button" style="display:none" onclick="handleDriveStatusClick()"><span class="dot" id="driveStatusDot"></span><span id="driveStatusLabel">连接 Google Drive</span></button><span class="sync-pending-wrap" id="sharedStatusWrap" style="display:none"><button class="sync-pending-btn" id="sharedStatusBtn" type="button" style="border-radius:999px" onclick="retryShared()"></button></span><div class="hero-kpi"><div class="label" data-i18n="heroTotalLabel"></div><div class="value" id="heroTotal">—</div></div><div class="hero-kpi"><div class="label" data-i18n="heroUniqueLabel"></div><div class="value" id="heroUnique">—</div></div><div class="hero-kpi"><div class="label" data-i18n="heroActiveLabel"></div><div class="value" id="heroActive">—</div></div></div></header>
+<header class="header"><div><div class="eyebrow"><span class="dot"></span><span data-i18n="eyebrow"></span></div><h1 data-i18n="title"></h1><p data-i18n="subtitle"></p></div><div class="header-right"><div class="lang-toggle" role="group" aria-label="Language switch"><button id="langZh" class="active" type="button">中文简体</button><button id="langKo" type="button">한국어</button><button id="langEn" type="button">English</button></div><button class="drive-status-btn" id="editModeBtn" type="button" style="display:none" onclick="toggleEditMode()"><span class="dot"></span><span id="editModeLabel">🔒 编辑模式</span></button><button class="drive-status-btn" id="driveStatusBtn" type="button" style="display:none" onclick="handleDriveStatusClick()"><span class="dot" id="driveStatusDot"></span><span id="driveStatusLabel">连接 Google Drive</span></button><button class="sync-pill" id="syncPill" type="button" style="display:none" onclick="retryShared()"><span class="dot"></span><span id="syncPillLabel"></span></button><span class="sync-pending-wrap" id="sharedStatusWrap" style="display:none"><button class="sync-pending-btn" id="sharedStatusBtn" type="button" style="border-radius:999px" onclick="retryShared()"></button></span><div class="hero-kpi"><div class="label" data-i18n="heroTotalLabel"></div><div class="value" id="heroTotal">—</div></div><div class="hero-kpi"><div class="label" data-i18n="heroUniqueLabel"></div><div class="value" id="heroUnique">—</div></div><div class="hero-kpi"><div class="label" data-i18n="heroActiveLabel"></div><div class="value" id="heroActive">—</div></div></div></header>
 <nav class="nav"><button class="active" data-page="overview" data-i18n="navOverview"></button><button data-page="region" data-i18n="navRegion"></button><button data-page="timeline" data-i18n="navTimeline"></button><button data-page="data" data-i18n="navData"></button><button data-page="quality" data-i18n="navQuality"></button></nav>
 <main class="main"><section class="filter-panel"><div class="filters"><div class="fg"><label data-i18n="filterSearch"></label><input id="searchInput" data-i18n-placeholder="searchPlaceholder" /></div><div class="fg"><label data-i18n="filterRegion"></label><select id="regionFilter"></select></div><div class="fg"><label data-i18n="filterProvince"></label><select id="provinceFilter"></select></div><div class="fg"><label data-i18n="filterType"></label><select id="typeFilter"></select></div><div class="fg"><label data-i18n="filterStatus"></label><select id="statusFilter"></select></div><div class="fg"><label data-i18n="filterYear"></label><select id="yearFilter"></select></div><button class="btn secondary" id="clearBtn" data-i18n="clearBtn"></button></div></section>
 <section id="overview" class="page active"><div class="note" id="loadStatusNote" style="display:none"></div><div class="grid-kpi"><div class="card kpi"><div class="k-label" data-i18n="kTotal"></div><div class="k-value" id="kTotal">—</div><div class="k-sub" data-i18n="kTotalSub"></div></div><div class="card kpi"><div class="k-label" data-i18n="kUnique"></div><div class="k-value" id="kUnique">—</div><div class="k-sub" data-i18n="kUniqueSub"></div></div><div class="card kpi"><div class="k-label" data-i18n="kRegions"></div><div class="k-value" id="kRegions">—</div><div class="k-sub" data-i18n="kRegionsSub"></div></div><div class="card kpi"><div class="k-label" data-i18n="kProvinces"></div><div class="k-value" id="kProvinces">—</div><div class="k-sub" data-i18n="kProvincesSub"></div></div><div class="card kpi"><div class="k-label" data-i18n="kActive"></div><div class="k-value" id="kActive">—</div><div class="k-sub" data-i18n="kActiveSub"></div></div><div class="card kpi"><div class="k-label" data-i18n="kExpiring"></div><div class="k-value" id="kExpiring">—</div><div class="k-sub" data-i18n="kExpiringSub"></div></div></div><div class="chart-grid"><div class="card"><div class="section-title"><h2 data-i18n="chartRegionTitle"></h2><span class="sub" data-i18n="chartRegionSub"></span></div><div class="chart-box"><canvas id="regionChart"></canvas></div></div><div class="card"><div class="section-title"><h2 data-i18n="chartStatusTitle"></h2><span class="sub" data-i18n="chartStatusSub"></span></div><div class="chart-box"><canvas id="statusChart"></canvas></div></div></div><div class="chart-grid"><div class="card"><div class="section-title"><h2 data-i18n="chartProvinceTitle"></h2><span class="sub" data-i18n="chartProvinceSub"></span></div><div class="chart-box"><canvas id="provinceChart"></canvas></div></div><div class="card"><div class="section-title"><h2 data-i18n="chartTypeTitle"></h2><span class="sub" data-i18n="chartTypeSub"></span></div><div class="chart-box"><canvas id="typeChart"></canvas></div></div></div></section>
@@ -212,20 +218,42 @@ async function fetchExcelArrayBuffer(){
   }
   throw new Error(errors.join(' / '));
 }
-async function loadExcelData(){
-  if(typeof XLSX==='undefined') throw new Error('SheetJS XLSX library failed to load.');
-  const [{buffer,path,lastModified}]=await Promise.all([fetchExcelArrayBuffer(), fetchSharedOverrides()]);
-  const workbook=XLSX.read(buffer,{type:'array',cellDates:true});
-  const sourceDate=lastModified?new Date(lastModified):((workbook.Props&&workbook.Props.Modified)?new Date(workbook.Props.Modified):new Date());
-  setDataDate(sourceDate);
-  const sheetName=workbook.SheetNames.includes(EXCEL_SHEET_NAME)?EXCEL_SHEET_NAME:(workbook.SheetNames[1]||workbook.SheetNames[0]);
-  const worksheet=workbook.Sheets[sheetName];
+/* 主资料来源：优先读 Google 试算表（即时），失败才退回 GitHub 上的 Excel（备用） */
+let DATA_SOURCE='', DATA_HASH='', LAST_SYNC_AT=0, LAST_DATA_AT=null, POLL_BUSY=false;
+function ingestWorksheet(worksheet){
   const rows=XLSX.utils.sheet_to_json(worksheet,{defval:'',raw:false});
   RAW=rows.map(excelRowToRecord).filter(r=>r.chineseName||r.koreanName);
   applySharedOverrides(RAW);
   BASE_SUMMARY=summarizeRows(RAW);
   updateDynamicSubtitle();
-  console.info('China MOU Dashboard loaded Excel:', path, sheetName, RAW.length);
+}
+async function fetchFullFromSheet(){
+  const res=await fetch(SHARED_API_URL+(SHARED_API_URL.includes('?')?'&':'?')+'action=full&t='+Date.now(),{cache:'no-store'});
+  const data=await res.json();
+  if(!data||!data.ok)throw new Error((data&&data.error)||'bad response');
+  if(!Array.isArray(data.values)||data.values.length<2)throw new Error(data.masterError||'sheet has no master data');
+  return data;
+}
+function applyFullData(data){
+  SHARED_OVERRIDES=data.overrides||{};sharedVersion=data.version;sharedOk=true;
+  DATA_HASH=data.dataHash||'';DATA_SOURCE='sheet';LAST_SYNC_AT=Date.now();
+  if(data.dataUpdatedAt){LAST_DATA_AT=new Date(data.dataUpdatedAt);setDataDate(LAST_DATA_AT)}
+  ingestWorksheet(XLSX.utils.aoa_to_sheet(data.values));
+}
+async function loadExcelData(){
+  if(typeof XLSX==='undefined') throw new Error('SheetJS XLSX library failed to load.');
+  if(sharedConfigured()){
+    try{applyFullData(await fetchFullFromSheet());console.info('China MOU Dashboard loaded Google Sheet:',RAW.length);return}
+    catch(e){console.warn('Google Sheet load failed, falling back to Excel:',e)}
+  }
+  const [{buffer,path,lastModified}]=await Promise.all([fetchExcelArrayBuffer(), fetchSharedOverrides()]);
+  const workbook=XLSX.read(buffer,{type:'array',cellDates:true});
+  const sourceDate=lastModified?new Date(lastModified):((workbook.Props&&workbook.Props.Modified)?new Date(workbook.Props.Modified):new Date());
+  setDataDate(sourceDate);
+  const sheetName=workbook.SheetNames.includes(EXCEL_SHEET_NAME)?EXCEL_SHEET_NAME:(workbook.SheetNames[1]||workbook.SheetNames[0]);
+  DATA_SOURCE='excel';DATA_HASH='';
+  ingestWorksheet(workbook.Sheets[sheetName]);
+  console.info('China MOU Dashboard loaded Excel (fallback):', path, sheetName, RAW.length);
 }
 function showLoadError(err){
   const note=document.querySelector('.note');
@@ -352,7 +380,7 @@ function showToast(msg,type){
    部署 Code.gs 之后，把「网页应用程式网址」（/exec 结尾）贴在下面 SHARED_API_URL。 */
 const SHARED_API_URL = 'https://script.google.com/macros/s/AKfycbwqayjP9UfQGQeqABjUIQOeUY-pdc2KROHMUHTr-2x7nXKI_Quyluzj8BUjMgG7UxPfRQ/exec';
 const LS_EDIT_KEY = 'mouEditKey_v2';
-const POLL_MS = 30000;
+const POLL_MS = 15000;
 let SHARED_OVERRIDES = {}, sharedVersion = -1, sharedOk = false, EDIT_MODE = false;
 
 function sharedConfigured(){return SHARED_API_URL && !SHARED_API_URL.startsWith('PASTE_')}
@@ -438,6 +466,21 @@ async function toggleEditMode(){
     showToast(tr('已进入编辑模式','편집 모드를 켰습니다','Edit mode on'),'ok');
   }catch(e){showToast(tr('密码不正确，或无法连线到共享资料','비밀번호가 틀렸거나 연결할 수 없습니다','Wrong password or cannot reach the shared data'),'error')}
 }
+/* 同步状态：一眼看出资料是不是最新的 */
+function updateSyncPill(){
+  const pill=document.getElementById('syncPill'),label=document.getElementById('syncPillLabel');
+  if(!pill||!label)return;
+  if(!sharedConfigured()){pill.style.display='none';return}
+  pill.style.display='inline-flex';
+  const secs=LAST_SYNC_AT?Math.max(0,Math.round((Date.now()-LAST_SYNC_AT)/1000)):null;
+  const ago=secs===null?'':secs<60?tr(`${secs} 秒前`,`${secs}초 전`,`${secs}s ago`):tr(`${Math.round(secs/60)} 分钟前`,`${Math.round(secs/60)}분 전`,`${Math.round(secs/60)} min ago`);
+  let state,text;
+  if(!sharedOk){state='bad';text=tr('同步中断 · 点此重试','동기화 끊김 · 재시도','Sync lost · Retry')}
+  else if(DATA_SOURCE!=='sheet'){state='warn';text=tr('备用资料（GitHub Excel）','백업 데이터 (GitHub Excel)','Backup data (GitHub Excel)')}
+  else{state='ok';text=tr('实时同步 · ','실시간 동기화 · ','Live sync · ')+ago}
+  pill.dataset.state=state;label.textContent=text;
+  pill.title=tr('资料来源：','데이터 출처: ','Source: ')+(DATA_SOURCE==='sheet'?'Google Sheet':'GitHub Excel');
+}
 /* 读取失败时要让人看得到：不是悄悄显示旧资料 */
 function updateSharedStatusUI(){
   const wrap=document.getElementById('sharedStatusWrap'), btn=document.getElementById('sharedStatusBtn');
@@ -446,16 +489,36 @@ function updateSharedStatusUI(){
   wrap.style.display=show?'inline-flex':'none';
   if(show)btn.textContent=tr('⚠ 共享 PDF 清单无法连线（目前显示 Excel 内的连结）· 点此重试','⚠ 공유 PDF 목록 연결 실패 (Excel 링크 표시 중) · 재시도','⚠ Shared PDF list unavailable (showing Excel links) · Retry');
 }
-async function pollShared(){
-  if(!sharedConfigured()||document.hidden)return;
-  const before=sharedVersion, wasOk=sharedOk;
-  await fetchSharedOverrides();
-  if(sharedVersion!==before||sharedOk!==wasOk){applySharedOverrides(RAW);if(RAW.length)updateAll()}
-  updateSharedStatusUI();
+function uploadModalOpen(){const o=document.getElementById('uploadOverlay');return !!o&&getComputedStyle(o).display!=='none'}
+async function pollShared(force){
+  if(!sharedConfigured()||POLL_BUSY||(document.hidden&&!force))return;
+  POLL_BUSY=true;
+  try{
+    const res=await fetch(SHARED_API_URL+(SHARED_API_URL.includes('?')?'&':'?')+'action=version&t='+Date.now(),{cache:'no-store'});
+    const v=await res.json();
+    if(!v||!v.ok)throw new Error((v&&v.error)||'bad response');
+    if(v.overrides&&v.dataHash===undefined){
+      /* 后端还是旧版：只同步 PDF 连结 */
+      if(v.version!==sharedVersion){SHARED_OVERRIDES=v.overrides||{};sharedVersion=v.version;applySharedOverrides(RAW);if(RAW.length)updateAll()}
+    }else if(v.dataHash&&v.dataHash!==DATA_HASH){
+      if(!uploadModalOpen()){
+        const hadData=RAW.length>0;
+        applyFullData(await fetchFullFromSheet());
+        populateFilters();updateAll();
+        if(hadData)showToast(tr('资料已更新','데이터가 업데이트되었습니다','Data updated'),'ok');
+      }
+    }else if(v.version!==sharedVersion){
+      await fetchSharedOverrides();applySharedOverrides(RAW);if(RAW.length)updateAll();
+    }
+    sharedOk=true;LAST_SYNC_AT=Date.now();
+  }catch(e){console.warn('sync failed',e);sharedOk=false}
+  finally{POLL_BUSY=false;updateSharedStatusUI();updateSyncPill()}
 }
-function retryShared(){pollShared()}
+function retryShared(){pollShared(true)}
 setInterval(pollShared,POLL_MS);                                     // 页面开着也会自动更新，不用手动重新整理
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollShared()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollShared(true)});
+window.addEventListener('online',()=>pollShared(true));
+setInterval(updateSyncPill,5000);
 function driveConfigured(){return GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith('PASTE_')}
 function updateDriveStatusUI(){
   const dot=document.getElementById('driveStatusDot'), label=document.getElementById('driveStatusLabel'), btn=document.getElementById('driveStatusBtn');
@@ -466,7 +529,7 @@ function updateDriveStatusUI(){
   if(!driveConfigured()){label.textContent=zh?'Drive 上传未设定':ko?'Drive 업로드 미설정':'Drive upload not configured'}
   else if(connected){label.textContent=zh?'Google Drive 已连接':ko?'Google Drive 연결됨':'Google Drive Connected'}
   else{label.textContent=zh?'连接 Google Drive':ko?'Google Drive 연결':'Connect Google Drive'}
-  updateEditModeUI();updateSharedStatusUI();
+  updateEditModeUI();updateSharedStatusUI();updateSyncPill();
 }
 function handleDriveStatusClick(){
   if(!driveConfigured()){
@@ -826,6 +889,7 @@ async function bootstrapDashboard(){
     initFilters();
     updateAll();
     updateSharedStatusUI();
+    updateSyncPill();
   }catch(err){
     showLoadError(err);
   }
